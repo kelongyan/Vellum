@@ -1,4 +1,4 @@
-//! Community links: Help menu, About dialog and home screen open the ArtCraft and PdfCraft pages.
+//! Community links: Help menu and About dialog open the ArtCraft and PdfCraft pages.
 //! CUSTOM(kelongyan): the top bar's Discord button, and its test, were removed from this fork.
 
 use egui_kittest::Harness;
@@ -17,20 +17,7 @@ fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, P
     h
 }
 
-#[test]
-fn home_screen_links() {
-    for (label, url) in [
-        ("PdfCraft web page", "https://getartcraft.com/apps/pdfcraft"),
-        ("PdfCraft on GitHub", "https://github.com/storytold/pdfcraft"),
-        ("ArtCraft website", "https://getartcraft.com"),
-    ] {
-        let mut h = harness(|_| {});
-        h.get_by_label("Join the ArtCraft community");
-        h.get_by_label(label).click();
-        h.run_steps(2);
-        assert_eq!(h.state().last_opened_url.as_deref(), Some(url), "{label}");
-    }
-}
+// CUSTOM(kelongyan): the home_screen_links test was removed with the ArtCraft community card.
 
 #[test]
 fn about_dialog_shows_the_brand_and_links() {
