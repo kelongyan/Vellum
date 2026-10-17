@@ -4,4 +4,5 @@
 pub(crate) mod fonts;
 pub(crate) mod home;
 pub(crate) mod library;
+pub(crate) mod tempo;
 pub(crate) mod thumbs;

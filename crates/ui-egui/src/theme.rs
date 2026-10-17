@@ -141,12 +141,19 @@ pub struct Press {
 impl Press {
     pub fn track(ui: &egui::Ui, resp: &Response) -> Self {
         let hot = resp.hovered() || resp.is_pointer_button_down_on();
-        let ease = egui::emath::easing::quadratic_out;
-        // With animation effects off the wash and the press are simply there.
-        let (hover, down) = if crate::motion::animated(ui.ctx()) { (0.12, 0.06) } else { (0.0, 0.0) };
+        // CUSTOM(kelongyan): these two travels belong to the fork's ladder (`custom/tempo.rs`) rather
+        // than to egui's easing, which took 0.12 s and 0.06 s to the same 0.0-1.0 wash. `fill` and
+        // `offset` read it unchanged. A wash leaves slower than it arrives on purpose: the pointer,
+        // not the user, ends it, so crossing the chrome must not make it flicker. With animation
+        // effects off both answers are their target in the pass they are asked, as they were.
+        //
+        // `switch`, not `track`: a control the window has never been asked about is a control with no
+        // wash on it, so the first pass the pointer reaches it starts from nothing and eases in.
+        use crate::custom::tempo;
+        let ctx = ui.ctx();
         Self {
-            hover: ui.ctx().animate_bool_with_time_and_easing(resp.id.with("chrome-hover"), hot, hover, ease),
-            down: ui.ctx().animate_bool_with_time_and_easing(resp.id.with("chrome-down"), resp.is_pointer_button_down_on(), down, ease),
+            hover: tempo::switch(ctx, resp.id.with("chrome-hover"), hot, tempo::MICRO),
+            down: tempo::switch(ctx, resp.id.with("chrome-down"), resp.is_pointer_button_down_on(), tempo::TAP),
         }
     }
 
