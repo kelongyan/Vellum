@@ -1336,6 +1336,12 @@ impl PdfCraftApp {
             let out = self.session.take_js_output(id);
             self.handle_js(id, out);
         }
+        // CUSTOM(kelongyan): opening a document collapses the All tools pane and leaves the
+        // Inspector (bookmarks/outline) in view; the tools come back from the mode bar.
+        if activate && matches!(self.left, LeftPanel::AllTools) {
+            self.left_open = false;
+            self.pending_panel_reveals.retain(|panel| *panel != docking::Panel::Tools);
+        }
         Ok(id)
     }
 

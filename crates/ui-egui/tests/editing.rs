@@ -45,6 +45,9 @@ fn harness(pages: usize, setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harn
         let mut app = PdfCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("doc.pdf", None, fixture(pages)).expect("fixture opens");
+        // CUSTOM(kelongyan): opening a document collapses All tools in this fork; these document
+        // tests run with the pane open, as upstream did.
+        app.set_option("left", "open").unwrap();
         setup(&mut app);
         app
     });
@@ -1939,6 +1942,9 @@ fn the_security_notice_wraps_beside_its_buttons_and_lines_up_with_them() {
             app.set_option("language", "en").unwrap();
             app.open_bytes("locked.pdf", None, protected("", "owner", 0b0100)).unwrap();
             app.set_option("panel", "bookmarks").unwrap();
+            // CUSTOM(kelongyan): opening a document collapses All tools in this fork; this
+            // measurement runs with the pane open, as upstream did.
+            app.set_option("left", "open").unwrap();
             app
         });
         h.run_steps(4);

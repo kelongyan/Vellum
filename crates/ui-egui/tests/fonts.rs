@@ -253,10 +253,14 @@ fn chinese_ui_uses_an_installed_chinese_face() {
 /// back to egui's replacement glyph) without panicking; Latin text is unaffected.
 #[test]
 fn ui_fonts_work_without_craft_fonts() {
-    let mut fonts = Fonts::new(TextOptions::default(), theme::font_definitions());
+    let defs = theme::font_definitions();
+    // CUSTOM(kelongyan): the fork's local HarmonyOS Sans SC face draws Japanese kana when this
+    // machine has it, so "no craft-fonts" compares against every source of kana.
+    let kana_available = !pdfcraft_fonts::ui_japanese_fonts().is_empty() || defs.font_data.keys().any(|k| k.starts_with("HarmonyOSSansSC"));
+    let mut fonts = Fonts::new(TextOptions::default(), defs);
     for id in families() {
         assert!(fonts.has_glyphs(&id, "PdfCraft"), "{id:?}");
-        assert_eq!(fonts.has_glyphs(&id, JAPANESE), !pdfcraft_fonts::ui_japanese_fonts().is_empty(), "{id:?}");
+        assert_eq!(fonts.has_glyphs(&id, JAPANESE), kana_available, "{id:?}");
     }
     assert!(layout_widths(&mut fonts, JAPANESE).iter().all(|w| w.is_finite() && *w > 0.0));
     assert!(layout_widths(&mut fonts, "PdfCraft").iter().all(|w| *w > 20.0));

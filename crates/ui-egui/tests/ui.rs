@@ -19,6 +19,18 @@ const FIXTURE: &[u8] = b"%PDF-1.7
 trailer << /Root 1 0 R >>
 %%EOF";
 
+/// [`FIXTURE`] without the comment: opening it shows the outline, not the Comments pane.
+const OUTLINE_ONLY: &[u8] = b"%PDF-1.7
+1 0 obj << /Type /Catalog /Pages 2 0 R /Outlines 6 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] >> endobj
+4 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 300 400] >> endobj
+6 0 obj << /Type /Outlines /First 7 0 R /Last 8 0 R /Count 2 >> endobj
+7 0 obj << /Title (Alpha section) /Parent 6 0 R /Next 8 0 R /Dest [3 0 R /Fit] >> endobj
+8 0 obj << /Title (Beta section) /Parent 6 0 R /Prev 7 0 R /Dest [4 0 R /Fit] >> endobj
+trailer << /Root 1 0 R >>
+%%EOF";
+
 fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, PdfCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(move |_cc| {
         let mut app = PdfCraftApp::new();
@@ -142,6 +154,25 @@ fn opening_a_pdf_shows_comments_and_bookmarks() {
     h.get_by_label("Beta section");
 }
 
+/// CUSTOM(kelongyan): opening a document collapses the All tools pane and keeps the outline in
+/// view; the mode bar brings the tools back when the user wants them.
+#[test]
+fn opening_a_document_collapses_all_tools_and_shows_the_outline() {
+    use pdfcraft_ui_egui::RightPanel;
+    let mut h = harness(|_| {});
+    assert!(h.state().left_open, "Home starts with All tools open");
+    h.state_mut().open_bytes("outlined.pdf", None, OUTLINE_ONLY.to_vec()).unwrap();
+    h.run_steps(3);
+    assert!(!h.state().left_open, "opening a document collapses All tools");
+    assert_eq!(h.state().right, Some(RightPanel::Bookmarks), "the outline is in view");
+    if let Ok(dir) = std::env::var("PDFCRAFT_PANEL_SHOTS") {
+        h.render().unwrap().save(format!("{dir}/document-opens-with-tools-collapsed.png")).unwrap();
+    }
+    h.get_by_label("All tools").click();
+    h.run_steps(3);
+    assert!(h.state().left_open, "the All tools button reopens the pane");
+}
+
 /// #1590: side panes the user closed stay closed when PdfCraft restarts and opens another PDF,
 /// even one with comments and bookmarks, which would otherwise open on the Comments panel.
 #[test]
@@ -149,7 +180,8 @@ fn closed_side_panes_stay_closed_after_a_restart_and_opening_a_pdf() {
     use pdfcraft_ui_egui::RightPanel;
     let mut h = harness(|app| app.open_bytes("fixture.pdf", None, FIXTURE.to_vec()).expect("fixture opens"));
     assert_eq!(h.state().right, Some(RightPanel::Comments));
-    assert!(h.state().left_open);
+    // CUSTOM(kelongyan): opening a document collapses the All tools pane (the fork default).
+    assert!(!h.state().left_open, "opening a document collapses All tools");
     h.state_mut().choose_right_panel(None);
     h.state_mut().set_option("left", "closed").unwrap();
     h.run_steps(3);

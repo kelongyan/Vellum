@@ -37,6 +37,9 @@ fn harness() -> Harness<'static, PdfCraftApp> {
         app.set_option("language", "en").unwrap();
         app.open_bytes("a.pdf", None, fixture(5)).unwrap();
         app.open_bytes("b.pdf", None, fixture(2)).unwrap();
+        // CUSTOM(kelongyan): opening a document collapses All tools in this fork; these geometry
+        // tests run with the pane open, as upstream did.
+        app.set_option("left", "open").unwrap();
         app
     });
     // Background rendering and text extraction can take seconds on a loaded CI runner (FreeBSD VM).
@@ -1017,6 +1020,9 @@ fn a_picture_inside_form_artwork_under_text_is_selected_and_copied() {
         let mut app = PdfCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("scan.pdf", None, pdf).unwrap();
+        // CUSTOM(kelongyan): opening a document collapses All tools in this fork; this pick
+        // geometry runs with the pane open, as upstream did.
+        app.set_option("left", "open").unwrap();
         app
     });
     for _ in 0..40 {

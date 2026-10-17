@@ -1241,6 +1241,10 @@ fn measurement_tools_draw_live_calibrate_save_and_export() {
 fn docking_pointer_group_float_close_restore_and_document_commands() {
     use pdfcraft_ui_egui::docking::Panel;
     let (mut h, c) = harness();
+    // CUSTOM(kelongyan): opening a document collapses All tools in this fork; these docking
+    // scenarios need the pane back in the layout first.
+    h.state_mut().set_option("left", "open").unwrap();
+    h.run_steps(3);
     ok(&mut h, &c, "ui.set", json!({"key":"panel", "value":"bookmarks"}));
     h.run_steps(4);
     let from = h.get_by_role_and_label(egui::accesskit::Role::Tab, "Inspector").rect().center();
@@ -1287,6 +1291,9 @@ fn docking_pointer_group_float_close_restore_and_document_commands() {
 #[test]
 fn invalid_docking_requests_are_atomic_and_do_not_change_documents() {
     let (mut h, c) = harness();
+    // CUSTOM(kelongyan): see the note in the pointer-group test above.
+    h.state_mut().set_option("left", "open").unwrap();
+    h.run_steps(3);
     let before = serde_json::to_value(&h.state().docking).unwrap();
     for params in [
         json!({"operation":"close", "panel":"canvas"}),
@@ -1307,6 +1314,9 @@ fn docking_renders_real_pdf_default_floating_and_redocked() {
     for width in [900.0, 1400.0] {
         for scale in [1.0, 2.0] {
             let (mut h, c) = harness_pages_at(5, width, scale);
+            // CUSTOM(kelongyan): see the note in the pointer-group test above.
+            h.state_mut().set_option("left", "open").unwrap();
+            h.run_steps(3);
             ok(&mut h, &c, "ui.resize", json!({"width":width,"height":900}));
             ok(&mut h, &c, "ui.set", json!({"key":"panel","value":"bookmarks"}));
             h.state_mut().apply_edit(pdfcraft_engine::Edit::AddBookmark { parent: vec![], index: 0, title: "Overview".into(), page: 0 });
@@ -1331,6 +1341,9 @@ fn docking_renders_real_pdf_default_floating_and_redocked() {
 #[test]
 fn explicit_panel_requests_reveal_inactive_group_members() {
     let (mut h, c) = harness();
+    // CUSTOM(kelongyan): see the note in the pointer-group test above.
+    h.state_mut().set_option("left", "open").unwrap();
+    h.run_steps(3);
     ok(&mut h, &c, "ui.set", json!({"key":"panel", "value":"bookmarks"}));
     ok(&mut h, &c, "ui.dock", json!({"operation":"move", "panel":"inspector", "target":"tools", "zone":"center"}));
     ok(&mut h, &c, "ui.dock", json!({"operation":"activate", "panel":"tools"}));
@@ -1398,6 +1411,9 @@ fn malformed_docking_settings_preserve_other_preferences() {
 fn rail_reveals_its_remembered_inactive_inspector_then_closes_the_visible_panel() {
     use pdfcraft_ui_egui::docking::Panel;
     let (mut h, c) = harness();
+    // CUSTOM(kelongyan): see the note in the pointer-group test above.
+    h.state_mut().set_option("left", "open").unwrap();
+    h.run_steps(3);
     ok(&mut h, &c, "ui.set", json!({"key":"panel", "value":"bookmarks"}));
     ok(&mut h, &c, "ui.dock", json!({"operation":"move", "panel":"inspector", "target":"tools", "zone":"center"}));
     ok(&mut h, &c, "ui.dock", json!({"operation":"activate", "panel":"tools"}));
