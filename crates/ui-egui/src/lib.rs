@@ -555,6 +555,8 @@ pub struct PdfCraftApp {
     pub recent: Vec<RecentFile>,
     /// CUSTOM(kelongyan): the fork's document library behind Home (custom/home.rs).
     pub library: custom::library::Library,
+    /// CUSTOM(kelongyan): first-page thumbnails for the Home cards (custom/thumbs.rs).
+    pub thumbnails: custom::thumbs::Thumbnails,
     /// Preferences: reopen the files that were open when PdfCraft last closed (#442).
     pub reopen_last_session: bool,
     /// The files open when PdfCraft last closed, read from the settings for
@@ -911,6 +913,7 @@ impl PdfCraftApp {
             all_tools_expanded: false,
             recent: Vec::new(),
             library: custom::library::Library::default(),
+            thumbnails: custom::thumbs::Thumbnails::default(),
             reopen_last_session: false,
             last_session: Default::default(),
             quit_session: None,

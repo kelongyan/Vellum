@@ -355,11 +355,30 @@ fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, 
     press.wash(ui, rect, 10, false);
     let lift = press.hover * -2.0;
     let cover = Rect::from_min_size(egui::pos2(rect.center().x - 56.0, rect.top() + 2.0 + lift), vec2(112.0, 142.0));
-    ui.painter()
-        .add(egui::Shadow { offset: [0, 3], blur: 10, spread: 0, color: t.page_shadow.gamma_multiply(0.45) }.as_shape(cover, CornerRadius::same(10)));
-    ui.painter().rect(cover, CornerRadius::same(10), t.card, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
-    let icon_tint = if doc.missing { t.text_faint.gamma_multiply(0.45) } else { t.text_faint };
-    icons::paint(ui, Rect::from_center_size(cover.center(), vec2(34.0, 34.0)), "file-text", 34.0, icon_tint);
+    let thumbnail = if doc.missing { None } else { app.thumbnails.texture(ui.ctx(), &doc.path) };
+    match thumbnail {
+        Some(texture) => {
+            // The page's own paper is the cover: fitted whole, with a soft shadow and a hairline.
+            let size = texture.size_vec2();
+            let fit = (cover.width() / size.x.max(1.0)).min(cover.height() / size.y.max(1.0));
+            let page = Rect::from_center_size(cover.center(), size * fit);
+            ui.painter().add(
+                egui::Shadow { offset: [0, 3], blur: 8, spread: 0, color: t.page_shadow.gamma_multiply(0.5) }.as_shape(page, CornerRadius::same(3)),
+            );
+            ui.painter().image(texture.id(), page, Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)), Color32::WHITE);
+            ui.painter().rect_stroke(page, CornerRadius::same(3), Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
+        }
+        None => {
+            // Until the first page renders (or when it cannot): the fallback sheet and glyph.
+            ui.painter().add(
+                egui::Shadow { offset: [0, 3], blur: 10, spread: 0, color: t.page_shadow.gamma_multiply(0.45) }
+                    .as_shape(cover, CornerRadius::same(10)),
+            );
+            ui.painter().rect(cover, CornerRadius::same(10), t.card, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
+            let icon_tint = if doc.missing { t.text_faint.gamma_multiply(0.45) } else { t.text_faint };
+            icons::paint(ui, Rect::from_center_size(cover.center(), vec2(34.0, 34.0)), "file-text", 34.0, icon_tint);
+        }
+    }
     let meta = if doc.missing {
         (tl!("The file was moved or deleted")).to_string()
     } else if doc.pages > 0 {
