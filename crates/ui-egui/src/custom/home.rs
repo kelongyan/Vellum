@@ -70,7 +70,6 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     heading_row(app, ui, &t, &mut actions);
                     crumb_row(app, ui, &t, open_folder, &mut actions);
                     library_grid(app, ui, &t, open_folder, &mut actions);
-                    footnote(ui, &t);
                 });
             });
         });
@@ -411,15 +410,6 @@ fn empty_note(ui: &mut egui::Ui, t: &Tokens, text: &str) {
         ui.label(egui::RichText::new(text).font(theme::regular(13.0)).color(t.text_faint));
     });
     ui.add_space(48.0);
-}
-
-fn footnote(ui: &mut egui::Ui, t: &Tokens) {
-    ui.add_space(30.0);
-    ui.label(
-        egui::RichText::new(tl!("PdfCraft works offline. No telemetry, no account, and no cloud processing unless you add a provider."))
-            .font(theme::regular(12.0))
-            .color(t.text_faint),
-    );
 }
 
 /// A soft or filled pill in the heading row.
