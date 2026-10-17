@@ -1974,6 +1974,7 @@
 	Choose a PNG or JPEG image (up to 4 MiB). Transparency is preserved.	PNG немесе JPEG суретін таңдаңыз (4 MiB-қа дейін). Мөлдірлік сақталады.
 	Couldn't import the signature image: {e}	Қолтаңба суретін импорттау мүмкін болмады: {e}
 @plural	{n} page|{n} pages	{n} бет|{n} бет
+@plural	{n} file|{n} files	{n} файл|{n} файл
 @plural	{n} field|{n} fields	{n} өріс|{n} өріс
 	Create PDF from multiple files…	Бірнеше файлдан PDF жасау…
 	Create separate PDFs…	Бөлек PDF файлдарын жасау…
@@ -2348,3 +2349,12 @@ animation effects	Off	Өшірулі
 	This document is trying to open a local file:	Бұл құжат жергілікті файлды ашуға әрекеттеніп жатыр:
 	Move tag earlier	Тегті ертерек жылжыту
 	Move tag later	Тегті кейінірек жылжыту
+	Documents	Құжаттар
+	New folder	Жаңа қалта
+	Move to folder…	Қалтаға жылжыту…
+	Locate file…	Файлды табу…
+	Remove from Documents	Құжаттардан алып тастау
+	The file was moved or deleted	Файл жылжытылған немесе жойылған
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	PDF файлын ашу үшін кез келген жерге тастаңыз немесе құжаттарыңызды реттеу үшін қалта жасаңыз.
+	Star {name}	{name} жұлдызшамен белгілеу
+	Unstar {name}	{name} жұлдызшасын алу

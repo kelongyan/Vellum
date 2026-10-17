@@ -18,6 +18,7 @@
 	Preferences…	Nastavitve…
 	Interface language	Jezik vmesnika
 @plural	{n} page|{n} pages	{n} stran|{n} strani|{n} strani|{n} strani
+@plural	{n} file|{n} files	{n} datoteka|{n} datoteki|{n} datoteke|{n} datotek
 	  · not fixable here	  · tu ni mogoče popraviti
 	 (page {p})	 (stran {p})
 	 (searching… {s} of {p} pages)	 (iskanje… {s} od {p} strani)
@@ -2355,3 +2356,12 @@ animation effects	Off	Izklopljeni
 	This document is trying to open a local file:	Ta dokument poskuša odpreti lokalno datoteko:
 	Move tag earlier	Premakni oznako prej
 	Move tag later	Premakni oznako pozneje
+	Documents	Dokumenti
+	New folder	Nova mapa
+	Move to folder…	Premakni v mapo…
+	Locate file…	Poišči datoteko…
+	Remove from Documents	Odstrani iz Dokumentov
+	The file was moved or deleted	Datoteka je bila premaknjena ali izbrisana
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Spustite PDF kamor koli, da ga odprete, ali ustvarite mapo za urejanje dokumentov.
+	Star {name}	Označi {name} z zvezdico
+	Unstar {name}	Odstrani zvezdico z {name}

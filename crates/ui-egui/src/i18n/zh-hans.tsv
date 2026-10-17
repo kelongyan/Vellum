@@ -2111,6 +2111,7 @@
 	This form's scripts are turned off because one ran too long. Reopen the document to run them again.	此表单的脚本已关闭，因为其中一个脚本运行时间过长。重新打开文档即可再次运行。
 	XFA form: its fields and its XFA data are kept in step, so other viewers show what you fill in.	XFA 表单：字段与 XFA 数据保持同步，以便其他阅读器显示您填写的内容。
 @plural	{n} page|{n} pages	{n} 页
+@plural	{n} file|{n} files	{n} 个文件
 @plural	{n} field|{n} fields	{n} 个字段
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	{n} 个字段名与之前的文件冲突，将被重命名: {list}
 	Created a PDF from {n} files	已从 {n} 个文件创建 PDF
@@ -2314,3 +2315,12 @@ animation effects	Off	关
 	This document is trying to open a local file:	此文档正尝试打开本地文件：
 	Move tag earlier	将标签前移
 	Move tag later	将标签后移
+	Documents	文稿
+	New folder	新建文件夹
+	Move to folder…	移动到文件夹…
+	Locate file…	重新定位文件…
+	Remove from Documents	从文稿库移除
+	The file was moved or deleted	文件已移动或删除
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	将 PDF 拖入窗口即可打开，也可以创建文件夹来整理文档。
+	Star {name}	为 {name} 加星标
+	Unstar {name}	取消 {name} 的星标

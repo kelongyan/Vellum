@@ -2048,6 +2048,7 @@
 	Choose a PNG or JPEG image (up to 4 MiB). Transparency is preserved.	اختر صورة PNG أو JPEG (حتى 4 MiB). الشفافية تُحفظ.
 	Couldn't import the signature image: {e}	تعذّر استيراد صورة التوقيع: {e}
 @plural	{n} page|{n} pages	{n} صفحة|{n} صفحة|{n} صفحتان|{n} صفحات|{n} صفحة|{n} صفحة
+@plural	{n} file|{n} files	{n} ملف|{n} ملف|{n} ملفان|{n} ملفات|{n} ملفاً|{n} ملف
 @plural	{n} field|{n} fields	{n} حقل|{n} حقل|{n} حقلان|{n} حقول|{n} حقلًا|{n} حقل
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	يتعارض {n} من أسماء الحقول مع الملفات السابقة وسيتم تغيير أسمائها: {list}|يتعارض اسم {n} حقل مع الملفات السابقة وسيتم تغيير اسمه: {list}|يتعارض اسما {n} حقل مع الملفات السابقة وسيتم تغيير اسميهما: {list}|تتعارض أسماء {n} حقول مع الملفات السابقة وسيتم تغيير أسمائها: {list}|يتعارض {n} اسم حقل مع الملفات السابقة وسيتم تغيير أسمائها: {list}|يتعارض {n} من أسماء الحقول مع الملفات السابقة وسيتم تغيير أسمائها: {list}
 	Create PDF from multiple files…	إنشاء PDF من عدة ملفات…
@@ -2372,3 +2373,12 @@ animation effects	Off	معطّلة
 	This document is trying to open a local file:	يحاول هذا المستند فتح ملف محلي:
 	Move tag earlier	نقل العلامة للأعلى
 	Move tag later	نقل العلامة للأسفل
+	Documents	المستندات
+	New folder	مجلد جديد
+	Move to folder…	نقل إلى مجلد…
+	Locate file…	تحديد موقع الملف…
+	Remove from Documents	إزالة من المستندات
+	The file was moved or deleted	تم نقل الملف أو حذفه
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	أفلت ملف PDF في أي مكان لفتحه، أو أنشئ مجلدًا لتنظيم مستنداتك.
+	Star {name}	تمييز {name} بنجمة
+	Unstar {name}	إزالة النجمة من {name}

@@ -1960,6 +1960,7 @@
 	This form's scripts are turned off because one ran too long. Reopen the document to run them again.	Az űrlap szkriptjei ki vannak kapcsolva, mert az egyik túl sokáig futott. Nyisd meg újra a dokumentumot, hogy ismét fussanak.
 	XFA form: its fields and its XFA data are kept in step, so other viewers show what you fill in.	XFA-űrlap: a mezői és az XFA-adatai együtt maradnak, így más megjelenítők azt mutatják, amit beírsz.
 @plural	{n} page|{n} pages	{n} oldal|{n} oldal
+@plural	{n} file|{n} files	{n} fájl|{n} fájl
 @plural	{n} field|{n} fields	{n} mező|{n} mező
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	{n} mezőnév ütközik a korábbi fájlokkal, és át lesz nevezve: {list}|{n} mezőnév ütközik a korábbi fájlokkal, és át lesz nevezve: {list}
 	Switch to two-page view first to show the cover page	Előbb válts kétoldalas nézetre a borító megjelenítéséhez
@@ -2349,3 +2350,12 @@ animation effects	Off	Ki
 	This document is trying to open a local file:	Ez a dokumentum egy helyi fájlt próbál megnyitni:
 	Move tag earlier	Címke korábbra helyezése
 	Move tag later	Címke későbbre helyezése
+	Documents	Dokumentumok
+	New folder	Új mappa
+	Move to folder…	Áthelyezés mappába…
+	Locate file…	Fájl megkeresése…
+	Remove from Documents	Eltávolítás a Dokumentumokból
+	The file was moved or deleted	A fájlt áthelyezték vagy törölték
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Húzzon be egy PDF-et bárhová a megnyitáshoz, vagy hozzon létre mappát a dokumentumai rendszerezéséhez.
+	Star {name}	{name} csillagozása
+	Unstar {name}	{name} csillag eltávolítása

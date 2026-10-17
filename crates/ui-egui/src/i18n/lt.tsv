@@ -2594,3 +2594,12 @@ key	Space	Tarpas
 	This document is trying to open a local file:	Šis dokumentas bando atverti vietinį failą:
 	Move tag earlier	Perkelti žymą anksčiau
 	Move tag later	Perkelti žymą vėliau
+	Documents	Dokumentai
+	New folder	Naujas aplankas
+	Move to folder…	Perkelti į aplanką…
+	Locate file…	Rasti failą…
+	Remove from Documents	Pašalinti iš Dokumentų
+	The file was moved or deleted	Failas perkeltas arba ištrintas
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Numeskite PDF bet kur, kad jį atidarytumėte, arba sukurkite aplanką dokumentams tvarkyti.
+	Star {name}	Pažymėti {name} žvaigždute
+	Unstar {name}	Nuimti {name} žvaigždutę

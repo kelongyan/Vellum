@@ -2054,6 +2054,7 @@ action wizard	Start	Iniciar
 	This form's scripts are turned off because one ran too long. Reopen the document to run them again.	Los scripts de este formulario están desactivados porque uno tardó demasiado en ejecutarse. Vuelve a abrir el documento para ejecutarlos de nuevo.
 	XFA form: its fields and its XFA data are kept in step, so other viewers show what you fill in.	Formulario XFA: sus campos y sus datos XFA se mantienen sincronizados, para que otros visores muestren lo que rellenes.
 @plural	{n} page|{n} pages	{n} página|{n} páginas
+@plural	{n} file|{n} files	{n} archivo|{n} archivos
 @plural	{n} field|{n} fields	{n} campo|{n} campos
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	{n} nombre de campo coincide con el de archivos anteriores y se renombrará: {list}|{n} nombres de campo coinciden con los de archivos anteriores y se renombrarán: {list}
 	Switch to two-page view first to show the cover page	Cambia primero a la vista de dos páginas para mostrar la portada
@@ -2480,3 +2481,12 @@ animation effects	Off	Desactivados
 	This document is trying to open a local file:	Este documento intenta abrir un archivo local:
 	Move tag earlier	Mover etiqueta antes
 	Move tag later	Mover etiqueta después
+	Documents	Documentos
+	New folder	Nueva carpeta
+	Move to folder…	Mover a carpeta…
+	Locate file…	Localizar archivo…
+	Remove from Documents	Quitar de Documentos
+	The file was moved or deleted	El archivo se movió o eliminó
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Suelta un PDF en cualquier lugar para abrirlo, o crea una carpeta para organizar tus documentos.
+	Star {name}	Marcar {name} con estrella
+	Unstar {name}	Quitar la estrella de {name}

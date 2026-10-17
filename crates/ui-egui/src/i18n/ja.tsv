@@ -2176,6 +2176,7 @@
 @plural	{n} field|{n} fields	{n} 個のフィールド
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	{n} 個のフィールド名が前のファイルと競合するため、名前が変更されます: {list}
 @plural	{n} page|{n} pages	{n} ページ
+@plural	{n} file|{n} files	{n} 個のファイル
 signature pad	Type	入力
 	Flatten Fill & Sign when saving	保存時に入力と署名を統合する
 	Text, marks and signatures become part of the page. Other comments stay editable.	テキスト、マーク、署名がページの一部になります。その他のコメントは引き続き編集できます。
@@ -2350,3 +2351,12 @@ animation effects	Off	オフ
 	This document is trying to open a local file:	この文書はローカルファイルを開こうとしています：
 	Move tag earlier	タグを前へ移動
 	Move tag later	タグを後へ移動
+	Documents	ドキュメント
+	New folder	新規フォルダ
+	Move to folder…	フォルダーへ移動…
+	Locate file…	ファイルを再指定…
+	Remove from Documents	ドキュメントから削除
+	The file was moved or deleted	ファイルが移動または削除されています
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	PDF をどこかにドロップして開くか、フォルダーを作成してドキュメントを整理できます。
+	Star {name}	{name} にスターを付ける
+	Unstar {name}	{name} のスターを外す

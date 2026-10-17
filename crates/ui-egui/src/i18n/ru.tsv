@@ -2055,6 +2055,7 @@
 	Couldn't import the signature image: {e}	Не удалось импортировать изображение подписи: {e}
 
 @plural	{n} page|{n} pages	{n} страница|{n} страницы|{n} страниц
+@plural	{n} file|{n} files	{n} файл|{n} файла|{n} файлов
 @plural	{n} field|{n} fields	{n} поле|{n} поля|{n} полей
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	Имя {n} поля конфликтует с предыдущими файлами и будет переименовано: {list}|Названия {n} полей конфликтуют с предыдущими файлами и будут переименованы: {list}|Названия {n} полей конфликтуют с предыдущими файлами и будут переименованы: {list}
 	Create PDF from multiple files…	Создать PDF из нескольких файлов…
@@ -2263,3 +2264,12 @@ animation effects	Off	Выкл
 	This document is trying to open a local file:	Этот документ пытается открыть локальный файл:
 	Move tag earlier	Переместить тег раньше
 	Move tag later	Переместить тег позже
+	Documents	Документы
+	New folder	Новая папка
+	Move to folder…	Переместить в папку…
+	Locate file…	Найти файл…
+	Remove from Documents	Удалить из Документов
+	The file was moved or deleted	Файл перемещён или удалён
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Перетащите PDF в любое место, чтобы открыть его, или создайте папку для упорядочивания документов.
+	Star {name}	Пометить {name} звёздочкой
+	Unstar {name}	Снять звёздочку с {name}

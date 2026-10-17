@@ -2153,6 +2153,7 @@
 @plural	{n} field|{n} fields	{n} pole|{n} pola|{n} pól
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	Nazwa {n} pola koliduje z wcześniejszymi plikami i zostanie zmieniona: {list}|Nazwy {n} pól kolidują z wcześniejszymi plikami i zostaną zmienione: {list}|{n} nazw pól koliduje z wcześniejszymi plikami i zostanie zmienionych: {list}
 @plural	{n} page|{n} pages	{n} strona|{n} strony|{n} stron
+@plural	{n} file|{n} files	{n} plik|{n} pliki|{n} plików
 signature pad	Type	Wpisz
 	Flatten Fill & Sign when saving	Spłaszczaj elementy Wypełnij i podpisz przy zapisie
 	Text, marks and signatures become part of the page. Other comments stay editable.	Tekst, oznaczenia i podpisy stają się częścią strony. Pozostałe komentarze pozostają edytowalne.
@@ -2330,3 +2331,12 @@ animation effects	Off	Wyłączone
 	This document is trying to open a local file:	Ten dokument próbuje otworzyć plik lokalny:
 	Move tag earlier	Przenieś znacznik wcześniej
 	Move tag later	Przenieś znacznik później
+	Documents	Dokumenty
+	New folder	Nowy folder
+	Move to folder…	Przenieś do folderu…
+	Locate file…	Zlokalizuj plik…
+	Remove from Documents	Usuń z Dokumentów
+	The file was moved or deleted	Plik został przeniesiony lub usunięty
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Upuść plik PDF w dowolnym miejscu, aby go otworzyć, lub utwórz folder, aby uporządkować dokumenty.
+	Star {name}	Oznacz {name} gwiazdką
+	Unstar {name}	Usuń gwiazdkę z {name}

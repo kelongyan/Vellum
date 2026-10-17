@@ -2171,6 +2171,7 @@
 	on page {label}	 στη σελίδα {label}
 @plural	{n} field|{n} fields	{n} πεδίο|{n} πεδία
 @plural	{n} page|{n} pages	{n} σελίδα|{n} σελίδες
+@plural	{n} file|{n} files	{n} αρχείο|{n} αρχεία
 signature pad	Type	Πληκτρολόγηση
 @plural	{n} object selected|{n} objects selected	{n} επιλεγμένο αντικείμενο|{n} επιλεγμένα αντικείμενα
 key	Ctrl	Ctrl
@@ -2360,3 +2361,12 @@ animation effects	Off	Ανενεργά
 	This document is trying to open a local file:	Αυτό το έγγραφο προσπαθεί να ανοίξει ένα τοπικό αρχείο:
 	Move tag earlier	Μετακίνηση ετικέτας νωρίτερα
 	Move tag later	Μετακίνηση ετικέτας αργότερα
+	Documents	Έγγραφα
+	New folder	Νέος φάκελος
+	Move to folder…	Μετακίνηση σε φάκελο…
+	Locate file…	Εντοπισμός αρχείου…
+	Remove from Documents	Αφαίρεση από Έγγραφα
+	The file was moved or deleted	Το αρχείο μετακινήθηκε ή διαγράφηκε
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Αποθέστε ένα PDF οπουδήποτε για άνοιγμα ή δημιουργήστε φάκελο για να οργανώσετε τα έγγραφά σας.
+	Star {name}	Σήμανση του {name} με αστέρι
+	Unstar {name}	Αφαίρεση αστεριού από {name}

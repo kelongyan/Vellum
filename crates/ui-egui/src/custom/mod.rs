@@ -2,3 +2,4 @@
 //! marked `CUSTOM(kelongyan)` in the upstream files (see `Rule/fork-customization.md`).
 
 pub(crate) mod home;
+pub(crate) mod library;

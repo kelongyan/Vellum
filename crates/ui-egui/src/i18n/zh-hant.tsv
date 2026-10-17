@@ -2224,3 +2224,14 @@ animation effects	Off	關
 	This document is trying to open a local file:	此文件正嘗試開啟本機檔案：
 	Move tag earlier	將標記前移
 	Move tag later	將標記後移
+	Documents	文稿
+	New folder	新增資料夾
+	Move to folder…	移至資料夾…
+	Locate file…	重新定位檔案…
+	Remove from Documents	從文稿庫移除
+	The file was moved or deleted	檔案已移動或刪除
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	將 PDF 拖入視窗即可開啟，也可以建立資料夾來整理文件。
+	Star {name}	為 {name} 加星號
+	Unstar {name}	取消 {name} 的星號
+@plural	{n} page|{n} pages	{n} 頁
+@plural	{n} file|{n} files	{n} 個檔案

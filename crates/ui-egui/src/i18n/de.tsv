@@ -1975,6 +1975,7 @@
 	This form's scripts are turned off because one ran too long. Reopen the document to run them again.	Die Skripte dieses Formulars sind ausgeschaltet, weil eines zu lange lief. Öffne das Dokument erneut, um sie wieder auszuführen.
 	XFA form: its fields and its XFA data are kept in step, so other viewers show what you fill in.	XFA-Formular: Seine Felder und XFA-Daten werden synchron gehalten, damit andere Viewer anzeigen, was du ausfüllst.
 @plural	{n} page|{n} pages	{n} Seite|{n} Seiten
+@plural	{n} file|{n} files	{n} Datei|{n} Dateien
 @plural	{n} field|{n} fields	{n} Feld|{n} Felder
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	{n} Feldname kollidiert mit früheren Dateien und wird umbenannt: {list}|{n} Feldnamen kollidieren mit früheren Dateien und werden umbenannt: {list}
 	Switch to two-page view first to show the cover page	Wechsle zuerst zur Doppelseitenansicht, um das Deckblatt anzuzeigen
@@ -2351,3 +2352,12 @@ animation effects	Off	Aus
 	This document is trying to open a local file:	Dieses Dokument versucht, eine lokale Datei zu öffnen:
 	Move tag earlier	Tag früher verschieben
 	Move tag later	Tag später verschieben
+	Documents	Dokumente
+	New folder	Neuer Ordner
+	Move to folder…	In Ordner verschieben…
+	Locate file…	Datei suchen…
+	Remove from Documents	Aus Dokumente entfernen
+	The file was moved or deleted	Die Datei wurde verschoben oder gelöscht
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Ziehen Sie ein PDF an eine beliebige Stelle, um es zu öffnen, oder erstellen Sie einen Ordner, um Ihre Dokumente zu organisieren.
+	Star {name}	{name} mit Stern markieren
+	Unstar {name}	Stern von {name} entfernen

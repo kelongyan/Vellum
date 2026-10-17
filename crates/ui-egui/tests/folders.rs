@@ -1,5 +1,7 @@
 //! Pinned folders on Home: File ▸ Pin folder to Home…, the newest PDFs listed per folder,
 //! opening one, unpinning, and the setting surviving a restart.
+//! CUSTOM(kelongyan): the fork's Home is a document library; the tests that exercised pinned
+//! folders on Home are ignored (the mechanism and its pure-logic tests are kept).
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
@@ -67,6 +69,7 @@ fn listed(h: &Harness<'static, PdfCraftApp>, folder: &str) -> Vec<String> {
 }
 
 #[test]
+#[ignore = "the fork's Home is a document library; pinned folders left Home (mechanism kept)"]
 fn a_pinned_folder_lists_its_newest_pdfs_on_home() {
     let dir = TempFolder::new("newest");
     dir.file("older.pdf", FIXTURE, Duration::from_secs(2 * 86_400));
@@ -90,6 +93,7 @@ fn a_pinned_folder_lists_its_newest_pdfs_on_home() {
 }
 
 #[test]
+#[ignore = "the fork's Home is a document library; pinned folders left Home (mechanism kept)"]
 fn clicking_a_pinned_pdf_opens_it_and_adds_it_to_recent() {
     let dir = TempFolder::new("open");
     let path = dir.file("scan.pdf", FIXTURE, Duration::from_secs(10));
@@ -106,6 +110,7 @@ fn clicking_a_pinned_pdf_opens_it_and_adds_it_to_recent() {
 }
 
 #[test]
+#[ignore = "the fork's Home is a document library; pinned folders left Home (mechanism kept)"]
 fn new_scans_appear_without_reopening_home() {
     let dir = TempFolder::new("rescan");
     dir.file("first.pdf", FIXTURE, Duration::from_secs(600));
@@ -123,6 +128,7 @@ fn new_scans_appear_without_reopening_home() {
 }
 
 #[test]
+#[ignore = "the fork's Home is a document library; pinned folders left Home (mechanism kept)"]
 fn unpinning_removes_the_folder_but_not_its_files() {
     let dir = TempFolder::new("unpin");
     let path = dir.file("keep.pdf", FIXTURE, Duration::from_secs(10));
@@ -158,6 +164,7 @@ fn pinned_folders_survive_a_restart() {
 }
 
 #[test]
+#[ignore = "the fork's Home is a document library; pinned folders left Home (mechanism kept)"]
 fn an_unavailable_folder_says_so_and_stays_pinned() {
     let missing = std::env::temp_dir().join(format!("pdfcraft-pinned-gone-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&missing);
@@ -179,6 +186,7 @@ fn an_unavailable_folder_says_so_and_stays_pinned() {
 }
 
 #[test]
+#[ignore = "the fork's Home is a document library; pinned folders left Home (mechanism kept)"]
 fn show_more_reveals_the_older_pdfs() {
     let dir = TempFolder::new("more");
     for i in 0..SHOWN + 2 {
@@ -198,6 +206,7 @@ fn show_more_reveals_the_older_pdfs() {
 }
 
 #[test]
+#[ignore = "the fork's Home is a document library; pinned folders left Home (mechanism kept)"]
 fn a_long_pdf_name_is_cut_before_its_date_and_size() {
     let dir = TempFolder::new("long");
     // Short enough for Windows' 260-character paths under the temp folder.

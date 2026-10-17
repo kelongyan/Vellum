@@ -1,28 +1,64 @@
-//! This fork's Home view: one centered column — the title row with the app icon and the open
-//! button, recent files, tool chips, pinned folders, and one quiet privacy line.
+//! This fork's Home view: the document library — a GoodNotes-style shelf of user-created folders
+//! and the PDFs the app has opened. References only: nothing here copies, moves or deletes a file.
 //!
 //! CUSTOM(kelongyan): whole-file customization; the upstream layout it replaces is forwarded
 //! from `../home.rs`. See `Rule/fork-customization.md` (local only).
 
-use egui::{Align2, CornerRadius, Rect, Sense, Stroke, vec2};
-use pdfcraft_engine::catalog;
+use std::time::{Duration, UNIX_EPOCH};
 
-use crate::folders_ui::{SHOWN, folder_name, location};
+use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, vec2};
+
+use crate::custom::library::{LibraryDoc, LibraryFolder};
 use crate::theme::{self, Tokens};
-use crate::{PdfCraftApp, icons, panels::human_size, widgets};
+use crate::{PdfCraftApp, icons, widgets};
 
-/// The tool chips on Home, in order.
-const TOOLS: [&str; 8] = ["organize", "comment", "form", "edit", "protect", "combine", "scan", "export"];
-
+/// Card metrics of the grid.
+const CARD_W: f32 = 170.0;
+const CARD_GAP: f32 = 22.0;
+const FOLDER_CARD_H: f32 = 160.0;
+const DOC_CARD_H: f32 = 212.0;
 /// Home stays this wide and centered on a large window, so the page keeps one calm column.
 const CONTENT_WIDTH: f32 = 1040.0;
 
-/// The app icon in the title row (the same artwork the window and taskbar use), drawn at 28 pt.
-/// An SVG, like the other in-app brand art: only the SVG loader is installed (no PNG loader).
-const APP_ICON: &[u8] = include_bytes!("../../../../assets/app-icon/pdfcraft-small.svg");
+/// A starred folder's star.
+const STAR: Color32 = Color32::from_rgb(0xE2, 0xA8, 0x2E);
+
+/// The open modal, if any. Stored in egui's per-context data, like other transient UI state.
+const DIALOG_ID: &str = "custom-home-dialog";
+const DIALOG_TEXT_ID: &str = "custom-home-dialog-text";
+/// Which folder is open; `None` (or a stale id) means the "All" top level.
+const OPEN_FOLDER_ID: &str = "custom-home-open-folder";
+
+#[derive(Clone, PartialEq)]
+enum HomeDialog {
+    NewFolder,
+    RenameFolder(u64),
+}
+
+/// Everything the cards asked for, applied after the frame they were drawn in.
+#[derive(Default)]
+struct CardActions {
+    open_folder: Option<Option<u64>>,
+    open_doc: Option<String>,
+    star: Option<(u64, bool)>,
+    delete_folder: Option<u64>,
+    rename_folder: Option<u64>,
+    move_doc: Option<(String, Option<u64>)>,
+    remove_doc: Option<String>,
+    relocate_doc: Option<String>,
+    open_dialog: Option<HomeDialog>,
+}
 
 pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
+    let mut open_folder = ui.data_mut(|d| d.get_temp::<Option<u64>>(egui::Id::new(OPEN_FOLDER_ID)).flatten());
+    if open_folder.is_some_and(|id| app.library.folder(id).is_none()) {
+        open_folder = None;
+        ui.data_mut(|d| d.insert_temp(egui::Id::new(OPEN_FOLDER_ID), open_folder));
+    }
+    let dialog = ui.data_mut(|d| d.get_temp::<Option<HomeDialog>>(egui::Id::new(DIALOG_ID))).flatten();
+
+    let mut actions = CardActions::default();
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
         egui::Frame::NONE.inner_margin(egui::Margin { left: 40, right: 40, top: 30, bottom: 24 }).show(ui, |ui| {
             let width = ui.available_width().min(CONTENT_WIDTH);
@@ -31,306 +67,403 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 ui.add_space(side);
                 ui.vertical(|ui| {
                     ui.set_width(width);
-                    title_row(app, ui, &t);
-                    recent_section(app, ui, &t);
-                    tools_section(app, ui, &t);
-                    folders_section(app, ui, &t);
+                    heading_row(app, ui, &t, &mut actions);
+                    crumb_row(app, ui, &t, open_folder, &mut actions);
+                    library_grid(app, ui, &t, open_folder, &mut actions);
                     footnote(ui, &t);
                 });
             });
         });
     });
+
+    if let Some(done) = run_dialog(ui.ctx(), &t, dialog.as_ref()) {
+        match done {
+            DialogDone::Cancel => {
+                ui.data_mut(|d| d.insert_temp(egui::Id::new(DIALOG_ID), None::<HomeDialog>));
+            }
+            DialogDone::Confirm(text) => {
+                match dialog {
+                    Some(HomeDialog::NewFolder) => {
+                        app.library.create_folder(&text);
+                    }
+                    Some(HomeDialog::RenameFolder(id)) => app.library.rename_folder(id, &text),
+                    None => {}
+                }
+                ui.data_mut(|d| d.insert_temp(egui::Id::new(DIALOG_ID), None::<HomeDialog>));
+            }
+        }
+    }
+
+    if let Some(dlg) = actions.open_dialog.take() {
+        let text = match &dlg {
+            HomeDialog::NewFolder => String::new(),
+            HomeDialog::RenameFolder(id) => app.library.folder(*id).map(|f| f.name.clone()).unwrap_or_default(),
+        };
+        ui.data_mut(|d| {
+            d.insert_temp(egui::Id::new(DIALOG_TEXT_ID), text);
+            d.insert_temp(egui::Id::new(DIALOG_ID), Some(dlg));
+        });
+    }
+    apply_actions(app, ui, actions);
 }
 
-fn title_row(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens) {
-    ui.horizontal(|ui| {
-        ui.add(egui::Image::from_bytes("bytes://pdfcraft-icon.svg", APP_ICON).fit_to_exact_size(vec2(28.0, 28.0)));
+fn apply_actions(app: &mut PdfCraftApp, ui: &mut egui::Ui, actions: CardActions) {
+    if let Some(target) = actions.open_folder {
+        ui.data_mut(|d| d.insert_temp(egui::Id::new(OPEN_FOLDER_ID), target));
+    }
+    if let Some((id, starred)) = actions.star {
+        app.library.set_folder_starred(id, starred);
+    }
+    if let Some(id) = actions.delete_folder {
+        app.library.delete_folder(id);
+    }
+    if let Some(id) = actions.rename_folder {
+        // The text field is seeded when the dialog opens.
+        let text = app.library.folder(id).map(|f| f.name.clone()).unwrap_or_default();
+        ui.data_mut(|d| {
+            d.insert_temp(egui::Id::new(DIALOG_TEXT_ID), text);
+            d.insert_temp(egui::Id::new(DIALOG_ID), Some(HomeDialog::RenameFolder(id)));
+        });
+    }
+    if let Some((path, folder)) = actions.move_doc {
+        app.library.move_doc(&path, folder);
+    }
+    if let Some(path) = actions.remove_doc {
+        app.library.remove_doc(&path);
+    }
+    if let Some(path) = actions.open_doc {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if !std::path::Path::new(&path).exists() {
+                app.library.set_missing(&path, true);
+                app.notify_tr(tl!("The file was moved or deleted"));
+                return;
+            }
+        }
+        app.open_recent(&path);
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(old) = actions.relocate_doc {
+        let dialog = rfd::AsyncFileDialog::new().add_filter("PDF", &["pdf"]).set_title(tl!("Locate file…"));
+        app.ask_one(crate::pickers::Ask::File(dialog), None, move |app, path| {
+            let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            app.library.relocate(&old, &path.to_string_lossy(), &name);
+        });
+    }
+}
+
+enum DialogDone {
+    Cancel,
+    Confirm(String),
+}
+
+/// Draw the open dialog. The text lives in egui data so the frame that opens it seeds it.
+fn run_dialog(ctx: &egui::Context, t: &Tokens, dialog: Option<&HomeDialog>) -> Option<DialogDone> {
+    let dlg = dialog?;
+    let id = match dlg {
+        HomeDialog::NewFolder => "custom-home-dialog-new-folder",
+        HomeDialog::RenameFolder(_) => "custom-home-dialog-rename-folder",
+    };
+    let title = match dlg {
+        HomeDialog::NewFolder => tl!("New folder"),
+        HomeDialog::RenameFolder(_) => tl!("Rename"),
+    };
+    let text_id = egui::Id::new(DIALOG_TEXT_ID);
+    let mut done = None;
+    let modal = widgets::show_modal(ctx, id, |ui| {
+        ui.set_max_width(280.0);
+        let title_label = ui.label(egui::RichText::new(title).font(theme::semibold(14.0)).color(t.text));
         ui.add_space(10.0);
-        ui.label(egui::RichText::new("PdfCraft").font(theme::semibold(20.0)).color(t.text));
+        let mut text = ui.data_mut(|d| d.get_temp::<String>(text_id).unwrap_or_default());
+        let resp = ui.add(egui::TextEdit::singleline(&mut text).desired_width(240.0).hint_text(tl!("Name"))).labelled_by(title_label.id);
+        // Focus the field while nothing else has focus: on open, and after clicking a button.
+        if ui.memory(|m| m.focused().is_none()) {
+            resp.request_focus();
+        }
+        let mut submit = resp.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+            done = Some(DialogDone::Cancel);
+        }
+        ui.data_mut(|d| d.insert_temp(text_id, text.clone()));
+        ui.add_space(14.0);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if open_button(ui, t) {
+            if widgets::pill_button(ui, tl!("Create"), true).clicked() {
+                submit = true;
+            }
+            ui.add_space(8.0);
+            if widgets::pill_button(ui, tl!("Cancel"), false).clicked() {
+                done = Some(DialogDone::Cancel);
+            }
+        });
+        if submit {
+            done = Some(DialogDone::Confirm(text));
+        }
+    });
+    if modal.should_close() && done.is_none() {
+        done = Some(DialogDone::Cancel);
+    }
+    done
+}
+
+fn heading_row(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, actions: &mut CardActions) {
+    ui.horizontal(|ui| {
+        ui.label(egui::RichText::new(tl!("Documents")).font(theme::semibold(28.0)).color(t.text));
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if pill(ui, t, "folder-plus", tl!("New folder"), true) {
+                actions.open_dialog = Some(HomeDialog::NewFolder);
+            }
+            ui.add_space(10.0);
+            if pill(ui, t, "folder", tl!("Open file"), false) {
                 app.open_dialog();
             }
         });
     });
 }
 
-/// The one prominent action: a soft accent pill in the title row.
-fn open_button(ui: &mut egui::Ui, t: &Tokens) -> bool {
-    let label = tl!("Open file");
-    let font = theme::medium(13.0);
-    let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_owned(), font.clone(), t.accent_text).size().x);
-    let (rect, resp) = ui.allocate_exact_size(vec2(w + 48.0, 34.0), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
-    let press = theme::Press::track(ui, &resp);
-    let fill = press.fill(t.accent_soft, t.selected, t.accent_soft.lerp_to_gamma(t.accent, 0.14));
-    ui.painter().rect(rect, CornerRadius::same(17), fill, Stroke::NONE, egui::StrokeKind::Inside);
-    let body = rect.translate(press.offset());
-    icons::paint(ui, Rect::from_min_size(body.min + vec2(13.0, 9.0), vec2(16.0, 16.0)), "folder", 16.0, t.accent_text);
-    ui.painter().text(body.left_center() + vec2(35.0, 0.0), Align2::LEFT_CENTER, label, font, t.accent_text);
-    theme::hand(resp).clicked()
-}
-
-fn section_title(ui: &mut egui::Ui, t: &Tokens, text: &str) {
-    ui.label(egui::RichText::new(text).font(theme::semibold(12.5)).color(t.text_muted));
-}
-
-fn recent_section(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens) {
-    ui.add_space(30.0);
-    let mut clear = false;
-    ui.horizontal(|ui| {
-        section_title(ui, t, tl!("Recent"));
-        if !app.recent.is_empty() {
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let resp = widgets::ghost_button(ui, "trash-2", tl!("Clear"));
-                resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Clear Recent Files")));
-                clear = resp.on_hover_text(tl!("Clear Recent Files")).clicked();
-            });
-        }
-    });
-    if app.recent.is_empty() {
-        ui.add_space(6.0);
-        ui.label(
-            egui::RichText::new(tl!("Files you open in PdfCraft appear here. Drop a PDF anywhere to open it."))
-                .font(theme::regular(12.5))
-                .color(t.text_faint),
-        );
-    }
-    let mut open = None;
-    let mut remove = None;
-    for r in &app.recent {
-        let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 48.0), Sense::click());
-        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &r.name));
-        let press = theme::Press::track(ui, &resp);
-        // The row, not its response: the pointer stays "in" the row over its remove button.
-        let hovered = ui.rect_contains_pointer(rect);
-        if hovered && press.hover < 0.04 && press.down < 0.04 {
-            // The remove button sits in the row, so the row response may not be hovered.
-            ui.painter().rect_filled(rect, CornerRadius::same(8), t.hover);
-        } else {
-            press.wash(ui, rect, 8, false);
-        }
-        if hovered {
-            // Remove just this file from the list (#430); the file itself is untouched.
-            let x_rect = Rect::from_center_size(rect.right_center() - vec2(14.0, 0.0), vec2(28.0, 28.0));
-            let x = ui.interact(x_rect, ui.id().with(("remove-recent", &r.path)), Sense::click());
-            let label = crate::i18n::fmt(tl!("Remove {name} from Recent"), &[("name", &r.name)]);
-            x.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
-            if x.hovered() {
-                ui.painter().rect_filled(x_rect, CornerRadius::same(6), t.pressed);
+fn crumb_row(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, open_folder: Option<u64>, actions: &mut CardActions) {
+    ui.add_space(16.0);
+    ui.horizontal(|ui| match open_folder.and_then(|id| app.library.folder(id)) {
+        Some(folder) => {
+            if ui.link(egui::RichText::new(tl!("All")).font(theme::medium(13.0))).clicked() {
+                actions.open_folder = Some(None);
             }
-            icons::paint(ui, x_rect.shrink(7.0), "x", 14.0, t.icon);
-            if x.on_hover_text(tl!("Remove from Recent")).clicked() {
-                remove = Some(r.path.clone());
-            }
-        }
-        let body = rect.translate(press.offset());
-        icons::paint(ui, Rect::from_min_size(body.min + vec2(10.0, 15.0), vec2(18.0, 18.0)), "file-text", 18.0, t.icon);
-        // Room on the right for the remove button.
-        let detail = ui.painter().text(
-            body.right_center() - vec2(46.0, 0.0),
-            Align2::RIGHT_CENTER,
-            format!("{}  ·  {}", crate::i18n::trn(crate::i18n::current(), r.pages as u64, "{n} page", "{n} pages"), human_size(r.size)),
-            theme::regular(12.0),
-            t.text_faint,
-        );
-        // The name and path stop short of the page count; hovering shows the whole path.
-        let width = detail.left() - 16.0 - (body.left() + 38.0);
-        widgets::row_text(ui, body.min + vec2(38.0, 17.0), crate::bidi::visual(&r.name), theme::medium(13.5), t.text, width);
-        widgets::row_text(ui, body.min + vec2(38.0, 34.0), crate::bidi::visual(&r.path), theme::regular(11.5), t.text_faint, width);
-        if theme::hand(resp).on_hover_text(&r.path).clicked() {
-            open = Some(r.path.clone());
-        }
-    }
-    if let Some(p) = open {
-        app.open_recent(&p);
-    }
-    if let Some(p) = remove {
-        app.recent.retain(|r| r.path != p);
-    }
-    if clear {
-        app.execute("file.clear_recent");
-    }
-}
-
-fn tools_section(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens) {
-    ui.add_space(30.0);
-    section_title(ui, t, tl!("Tools"));
-    ui.add_space(12.0);
-    ui.horizontal_wrapped(|ui| {
-        ui.spacing_mut().item_spacing = vec2(6.0, 6.0);
-        for id in TOOLS {
-            let Some(g) = catalog::group(id) else { continue };
-            if tool_chip(ui, t, g.icon, tl!(g.label)) {
-                app.select_tool(g.id);
-            }
-        }
-    });
-}
-
-/// A quiet pill: no border, a soft wash on hover, one monochrome icon.
-fn tool_chip(ui: &mut egui::Ui, t: &Tokens, icon: &str, label: &str) -> bool {
-    let font = theme::medium(13.0);
-    let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_owned(), font.clone(), t.text).size().x);
-    let (rect, resp) = ui.allocate_exact_size(vec2(w + 44.0, 34.0), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
-    let press = theme::Press::track(ui, &resp);
-    let fill = press.fill(egui::Color32::TRANSPARENT, t.hover, t.pressed);
-    if fill.a() > 0 {
-        ui.painter().rect_filled(rect, CornerRadius::same(17), fill);
-    }
-    let body = rect.translate(press.offset());
-    icons::paint(ui, Rect::from_min_size(body.min + vec2(11.0, 9.0), vec2(16.0, 16.0)), icon, 16.0, t.icon);
-    ui.painter().text(body.left_center() + vec2(33.0, 0.0), Align2::LEFT_CENTER, label, font, t.text);
-    theme::hand(resp).clicked()
-}
-
-fn folders_section(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens) {
-    ui.add_space(30.0);
-    app.refresh_pinned(ui.input(|i| i.time));
-    let mut pin = false;
-    ui.horizontal(|ui| {
-        section_title(ui, t, tl!("Folders"));
-        if !app.pinned.folders.is_empty() {
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                pin = widgets::ghost_button(ui, "folder-plus", tl!("Pin a folder…")).clicked();
-            });
-        }
-    });
-    if app.pinned.folders.is_empty() {
-        pin |= add_folder_box(ui, t);
-    }
-    let mut open = None;
-    let mut unpin = None;
-    let mut toggle = None;
-    for folder in &app.pinned.folders {
-        let name = folder_name(folder);
-        ui.add_space(10.0);
-        ui.horizontal(|ui| {
-            ui.add_space(10.0);
-            ui.label(egui::RichText::new(crate::bidi::visual(&name)).font(theme::semibold(13.0))).on_hover_text(folder);
+            let (icon, _) = ui.allocate_exact_size(vec2(14.0, 14.0), Sense::hover());
+            icons::paint(ui, icon, "chevron-right", 14.0, t.text_faint);
             ui.add_space(6.0);
-            // Leave room for Unpin: a long location is cut short, never the button.
-            let room = (ui.available_width() - 110.0).max(0.0);
-            ui.scope(|ui| {
-                ui.set_max_width(room);
-                let place = egui::RichText::new(crate::bidi::visual(&location(folder))).font(theme::regular(11.5)).color(t.text_faint);
-                ui.add(egui::Label::new(place).truncate()).on_hover_text(folder);
-            });
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                let resp = widgets::ghost_button(ui, "x", tl!("Unpin"));
-                // Every folder has an Unpin button: say which one it is.
-                let label = crate::i18n::fmt(tl!("Unpin {folder}"), &[("folder", &name)]);
-                resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &label));
-                if resp.clicked() {
-                    unpin = Some(folder.clone());
+            ui.label(egui::RichText::new(&folder.name).font(theme::medium(13.0)).color(t.text));
+        }
+        None => {
+            let (icon, _) = ui.allocate_exact_size(vec2(15.0, 15.0), Sense::hover());
+            icons::paint(ui, icon, "list", 15.0, t.text_muted);
+            ui.add_space(7.0);
+            ui.label(egui::RichText::new(tl!("All")).font(theme::medium(13.0)).color(t.text_muted));
+        }
+    });
+}
+
+fn library_grid(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, open_folder: Option<u64>, actions: &mut CardActions) {
+    ui.add_space(24.0);
+    let mut folder_items: Vec<&LibraryFolder> = Vec::new();
+    let mut doc_items: Vec<&LibraryDoc> = Vec::new();
+    if let Some(id) = open_folder {
+        doc_items.extend(app.library.docs_in(Some(id)));
+    } else {
+        folder_items.extend(app.library.folders());
+        // Starred folders first, then by creation order.
+        folder_items.sort_by_key(|f| (!f.starred, f.id));
+        doc_items.extend(app.library.docs_in(None));
+    }
+    if folder_items.is_empty() && doc_items.is_empty() {
+        empty_note(
+            ui,
+            t,
+            &if open_folder.is_some() {
+                tl!("No PDFs in this folder yet").to_string()
+            } else {
+                tl!("Drop a PDF anywhere to open it, or create a folder to organize your documents.").to_string()
+            },
+        );
+        return;
+    }
+    let cols = (((ui.available_width() + CARD_GAP) / (CARD_W + CARD_GAP)).floor() as usize).max(1);
+    let items: Vec<GridItem<'_>> = folder_items.into_iter().map(GridItem::Folder).chain(doc_items.into_iter().map(GridItem::Doc)).collect();
+    for row in items.chunks(cols) {
+        ui.horizontal_top(|ui| {
+            for item in row {
+                match item {
+                    GridItem::Folder(folder) => folder_card(app, ui, t, folder, actions),
+                    GridItem::Doc(doc) => doc_card(app, ui, t, doc, actions),
                 }
-            });
+                ui.add_space(CARD_GAP);
+            }
         });
-        let note = |ui: &mut egui::Ui, text: &str| {
-            ui.add_space(2.0);
-            ui.label(egui::RichText::new(text).font(theme::regular(12.5)).color(t.text_faint));
-        };
-        let Some(listing) = app.pinned.listing(folder) else {
-            note(ui, tl!("Looking for PDFs…"));
-            continue;
-        };
-        if listing.unavailable {
-            note(ui, tl!("This folder isn't available right now. It may have moved, or its drive or cloud sync is offline."));
-            continue;
-        }
-        if listing.files.is_empty() {
-            note(ui, tl!("No PDFs in this folder yet"));
-            continue;
-        }
-        let expanded = app.pinned.expanded.contains(folder);
-        let shown = if expanded { listing.files.len() } else { listing.files.len().min(SHOWN) };
-        for f in listing.files.iter().take(shown) {
-            ui.horizontal(|ui| {
-                ui.add_space(10.0);
-                let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 42.0), Sense::click());
-                resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &f.name));
-                let press = theme::Press::track(ui, &resp);
-                press.wash(ui, rect, 8, false);
-                let body = rect.translate(press.offset());
-                icons::paint(ui, Rect::from_min_size(body.min + vec2(8.0, 13.0), vec2(16.0, 16.0)), "file-text", 16.0, t.icon);
-                let size = human_size(usize::try_from(f.size).unwrap_or(usize::MAX));
-                let when = f.modified.map(crate::combine_ui::ago).unwrap_or_default();
-                let detail = if when.is_empty() { size } else { format!("{when}  ·  {size}") };
-                let detail =
-                    ui.painter().text(body.right_center() - vec2(12.0, 0.0), Align2::RIGHT_CENTER, detail, theme::regular(12.0), t.text_faint);
-                let width = detail.left() - 16.0 - (body.left() + 32.0);
-                widgets::row_text(ui, body.min + vec2(32.0, 21.0), crate::bidi::visual(&f.name), theme::medium(13.0), t.text, width);
-                if theme::hand(resp).on_hover_text(&f.path).clicked() {
-                    open = Some(f.path.clone());
-                }
-            });
-        }
-        let more = listing.files.len().saturating_sub(shown);
-        let capped = listing.total > listing.files.len();
-        if more > 0 || (expanded && (listing.files.len() > SHOWN || capped)) {
-            ui.horizontal(|ui| {
-                ui.add_space(32.0);
-                let label = if expanded { tl!("Show less").to_string() } else { crate::i18n::fmt(tl!("Show {n} more"), &[("n", &more.to_string())]) };
-                if (more > 0 || listing.files.len() > SHOWN) && ui.link(label).clicked() {
-                    toggle = Some(folder.clone());
-                }
-                if expanded && capped {
-                    let n = listing.files.len().to_string();
-                    let text = crate::i18n::fmt(tl!("The newest {n} of {total} PDFs"), &[("n", &n), ("total", &listing.total.to_string())]);
-                    ui.label(egui::RichText::new(text).font(theme::regular(12.0)).color(t.text_faint));
-                }
-            });
-        }
-    }
-    if pin {
-        app.pin_folder_dialog();
-    }
-    if let Some(folder) = unpin {
-        app.unpin_folder(&folder);
-    }
-    if let Some(folder) = toggle {
-        if app.pinned.expanded.contains(&folder) {
-            app.pinned.expanded.retain(|f| *f != folder);
-        } else {
-            app.pinned.expanded.push(folder);
-        }
-    }
-    if let Some(path) = open {
-        app.open_recent(&path);
+        ui.add_space(CARD_GAP);
     }
 }
 
-/// The empty-state entry point: a dashed box that reads as "add here".
-fn add_folder_box(ui: &mut egui::Ui, t: &Tokens) -> bool {
-    let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), 48.0), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Pin a folder…")));
+enum GridItem<'a> {
+    Folder(&'a LibraryFolder),
+    Doc(&'a LibraryDoc),
+}
+
+fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &LibraryFolder, actions: &mut CardActions) {
+    let (rect, resp) = ui.allocate_exact_size(vec2(CARD_W, FOLDER_CARD_H), Sense::click());
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &folder.name));
     let press = theme::Press::track(ui, &resp);
-    let fill = press.fill(egui::Color32::TRANSPARENT, t.hover, t.pressed);
-    if fill.a() > 0 {
-        ui.painter().rect_filled(rect, CornerRadius::same(10), fill);
+    press.wash(ui, rect, 10, false);
+    // The folder floats up while hovered.
+    let lift = press.hover * -2.0;
+    let top = rect.top() + 10.0 + lift;
+    let left = rect.center().x - 58.0;
+    ui.painter().rect(
+        Rect::from_min_size(egui::pos2(left + 6.0, top + 2.0), vec2(104.0, 30.0)),
+        CornerRadius::same(6),
+        folder_back(t),
+        Stroke::NONE,
+        egui::StrokeKind::Inside,
+    );
+    ui.painter().rect(
+        Rect::from_min_size(egui::pos2(left, top + 18.0), vec2(116.0, 56.0)),
+        CornerRadius::same(10),
+        folder_front(t),
+        Stroke::NONE,
+        egui::StrokeKind::Inside,
+    );
+    // The star sits on the folder's top right; it appears when starred or hovered.
+    let star_rect = Rect::from_center_size(egui::pos2(left + 98.0, top + 20.0), vec2(26.0, 26.0));
+    let star = ui.interact(star_rect, ui.id().with(("lib-star", folder.id)), Sense::click());
+    let star_label = if folder.starred {
+        crate::i18n::fmt(tl!("Unstar {name}"), &[("name", &folder.name)])
+    } else {
+        crate::i18n::fmt(tl!("Star {name}"), &[("name", &folder.name)])
+    };
+    star.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &star_label));
+    if folder.starred || star.hovered() {
+        let tint = if folder.starred { STAR } else { t.icon };
+        icons::paint(ui, star_rect.shrink(4.0), "star", 18.0, tint);
     }
-    let edge = t.border.lerp_to_gamma(t.text_muted, press.hover * 0.5);
-    let dash = Stroke::new(1.0, edge);
-    let corners = [rect.left_top(), rect.right_top(), rect.right_bottom(), rect.left_bottom()];
-    for i in 0..4 {
-        ui.painter().extend(egui::Shape::dashed_line(&[corners[i], corners[(i + 1) % 4]], dash, 5.0, 4.0));
+    if star.clicked() {
+        actions.star = Some((folder.id, !folder.starred));
     }
-    let body = rect.translate(press.offset());
-    let label = tl!("Pin a folder…");
-    let font = theme::medium(12.5);
-    let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_owned(), font.clone(), t.text_faint).size().x);
-    let left = body.center().x - (w + 23.0) * 0.5;
-    icons::paint(ui, Rect::from_min_size(egui::pos2(left, body.center().y - 7.5), vec2(15.0, 15.0)), "plus", 15.0, t.text_faint);
-    ui.painter().text(egui::pos2(left + 23.0, body.center().y), Align2::LEFT_CENTER, label, font, t.text_faint);
-    theme::hand(resp).clicked()
+    // Name and "N files · newest" line.
+    let count = app.library.folder_doc_count(folder.id);
+    let count_text = crate::i18n::trn(crate::i18n::current(), count as u64, "{n} file", "{n} files");
+    let meta = match app.library.folder_newest_added(folder.id) {
+        Some(added) if added > 0 => format!("{count_text}  ·  {}", ago_of(added)),
+        _ => count_text,
+    };
+    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 118.0), &folder.name, theme::medium(13.5), t.text);
+    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 138.0), &meta, theme::regular(11.5), t.text_faint);
+    if resp.clicked() && !star.clicked() {
+        actions.open_folder = Some(Some(folder.id));
+    }
+    resp.context_menu(|ui| {
+        if ui.button(tl!("Rename")).clicked() {
+            actions.rename_folder = Some(folder.id);
+            ui.close();
+        }
+        if ui.button(tl!("Delete")).clicked() {
+            actions.delete_folder = Some(folder.id);
+            ui.close();
+        }
+    });
+}
+
+fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, actions: &mut CardActions) {
+    let (rect, resp) = ui.allocate_exact_size(vec2(CARD_W, DOC_CARD_H), Sense::click());
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &doc.name));
+    let press = theme::Press::track(ui, &resp);
+    press.wash(ui, rect, 10, false);
+    let lift = press.hover * -2.0;
+    let cover = Rect::from_min_size(egui::pos2(rect.center().x - 56.0, rect.top() + 2.0 + lift), vec2(112.0, 142.0));
+    ui.painter()
+        .add(egui::Shadow { offset: [0, 3], blur: 10, spread: 0, color: t.page_shadow.gamma_multiply(0.45) }.as_shape(cover, CornerRadius::same(10)));
+    ui.painter().rect(cover, CornerRadius::same(10), t.card, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
+    let icon_tint = if doc.missing { t.text_faint.gamma_multiply(0.45) } else { t.text_faint };
+    icons::paint(ui, Rect::from_center_size(cover.center(), vec2(34.0, 34.0)), "file-text", 34.0, icon_tint);
+    let meta = if doc.missing {
+        (tl!("The file was moved or deleted")).to_string()
+    } else if doc.pages > 0 {
+        format!("{}  ·  {}", crate::i18n::trn(crate::i18n::current(), doc.pages as u64, "{n} page", "{n} pages"), ago_of(doc.added))
+    } else {
+        ago_of(doc.added)
+    };
+    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 160.0), &doc.name, theme::medium(13.5), t.text);
+    centered_elided(
+        ui,
+        t,
+        egui::pos2(rect.center().x, rect.top() + 181.0),
+        &meta,
+        theme::regular(11.5),
+        if doc.missing { t.text_muted } else { t.text_faint },
+    );
+    if resp.clicked() {
+        actions.open_doc = Some(doc.path.clone());
+    }
+    resp.on_hover_text(&doc.path).context_menu(|ui| {
+        ui.menu_button(tl!("Move to folder…"), |ui| {
+            if ui.button(tl!("All")).clicked() {
+                actions.move_doc = Some((doc.path.clone(), None));
+                ui.close();
+            }
+            for folder in app.library.folders() {
+                if ui.button(folder.name.as_str()).clicked() {
+                    actions.move_doc = Some((doc.path.clone(), Some(folder.id)));
+                    ui.close();
+                }
+            }
+        });
+        #[cfg(not(target_arch = "wasm32"))]
+        if ui.button(tl!("Locate file…")).clicked() {
+            actions.relocate_doc = Some(doc.path.clone());
+            ui.close();
+        }
+        if ui.button(tl!("Remove from Documents")).clicked() {
+            actions.remove_doc = Some(doc.path.clone());
+            ui.close();
+        }
+    });
+}
+
+fn empty_note(ui: &mut egui::Ui, t: &Tokens, text: &str) {
+    ui.add_space(48.0);
+    ui.vertical_centered(|ui| {
+        ui.label(egui::RichText::new(text).font(theme::regular(13.0)).color(t.text_faint));
+    });
+    ui.add_space(48.0);
 }
 
 fn footnote(ui: &mut egui::Ui, t: &Tokens) {
-    ui.add_space(34.0);
+    ui.add_space(30.0);
     ui.label(
         egui::RichText::new(tl!("PdfCraft works offline. No telemetry, no account, and no cloud processing unless you add a provider."))
             .font(theme::regular(12.0))
             .color(t.text_faint),
     );
+}
+
+/// A soft or filled pill in the heading row.
+fn pill(ui: &mut egui::Ui, t: &Tokens, icon: &str, label: &str, primary: bool) -> bool {
+    let font = theme::medium(13.0);
+    let (rest, text_color) = if primary { (t.accent, Color32::WHITE) } else { (t.accent_soft, t.accent_text) };
+    let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_owned(), font.clone(), text_color).size().x);
+    let (rect, resp) = ui.allocate_exact_size(vec2(w + 48.0, 34.0), Sense::click());
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+    let press = theme::Press::track(ui, &resp);
+    let fill = if primary {
+        press.fill(rest, t.accent_text, t.accent.lerp_to_gamma(Color32::BLACK, 0.22))
+    } else {
+        press.fill(rest, t.selected, t.accent_soft.lerp_to_gamma(t.accent, 0.14))
+    };
+    ui.painter().rect(rect, CornerRadius::same(17), fill, Stroke::NONE, egui::StrokeKind::Inside);
+    let body = rect.translate(press.offset());
+    icons::paint(ui, Rect::from_min_size(body.min + vec2(13.0, 9.0), vec2(16.0, 16.0)), icon, 16.0, text_color);
+    ui.painter().text(body.left_center() + vec2(35.0, 0.0), Align2::LEFT_CENTER, label, font, text_color);
+    theme::hand(resp).clicked()
+}
+
+/// One line of card text, centered, cut with "…" at the card's width.
+fn centered_elided(ui: &egui::Ui, _t: &Tokens, center: egui::Pos2, text: &str, font: egui::FontId, color: Color32) {
+    let mut job = egui::text::LayoutJob::simple_singleline(text.to_owned(), font, color);
+    job.wrap = egui::text::TextWrapping { max_width: CARD_W - 14.0, max_rows: 1, break_anywhere: true, ..Default::default() };
+    let galley = ui.fonts_mut(|f| f.layout_job(job));
+    let rect = Align2::CENTER_CENTER.anchor_size(center, galley.size());
+    ui.painter().galley(rect.min, galley, color);
+}
+
+/// The folder colours follow the accent, so both themes keep the shelf's tint.
+fn folder_front(t: &Tokens) -> Color32 {
+    t.accent.lerp_to_gamma(Color32::WHITE, 0.55)
+}
+
+fn folder_back(t: &Tokens) -> Color32 {
+    t.accent.lerp_to_gamma(Color32::WHITE, 0.42)
+}
+
+/// A Unix-seconds stamp as "yesterday", "3月10日" — empty for the unknown zero.
+fn ago_of(unix: u64) -> String {
+    if unix == 0 {
+        return String::new();
+    }
+    crate::combine_ui::ago(UNIX_EPOCH + Duration::from_secs(unix))
 }

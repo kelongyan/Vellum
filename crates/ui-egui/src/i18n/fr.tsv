@@ -1970,6 +1970,7 @@
 	This form's scripts are turned off because one ran too long. Reopen the document to run them again.	Les scripts de ce formulaire sont désactivés, car l'un d'eux s'est exécuté trop longtemps. Rouvrez le document pour les exécuter à nouveau.
 	XFA form: its fields and its XFA data are kept in step, so other viewers show what you fill in.	Formulaire XFA : ses champs et ses données XFA restent synchronisés, afin que les autres visionneuses affichent ce que vous remplissez.
 @plural	{n} page|{n} pages	{n} page|{n} pages
+@plural	{n} file|{n} files	{n} fichier|{n} fichiers
 @plural	{n} field|{n} fields	{n} champ|{n} champs
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	{n} nom de champ entre en collision avec les fichiers précédents et sera renommé : {list}|{n} noms de champs entrent en collision avec les fichiers précédents et seront renommés : {list}
 	Switch to two-page view first to show the cover page	Passez d'abord à l'affichage sur deux pages pour montrer la couverture
@@ -2350,3 +2351,12 @@ animation effects	Off	Désactivés
 	This document is trying to open a local file:	Ce document tente d’ouvrir un fichier local :
 	Move tag earlier	Déplacer la balise plus tôt
 	Move tag later	Déplacer la balise plus tard
+	Documents	Documents
+	New folder	Nouveau dossier
+	Move to folder…	Déplacer vers un dossier…
+	Locate file…	Localiser le fichier…
+	Remove from Documents	Retirer de Documents
+	The file was moved or deleted	Le fichier a été déplacé ou supprimé
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Déposez un PDF n'importe où pour l'ouvrir, ou créez un dossier pour organiser vos documents.
+	Star {name}	Ajouter {name} aux favoris
+	Unstar {name}	Retirer {name} des favoris

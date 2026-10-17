@@ -34,13 +34,10 @@ fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, P
 #[test]
 fn home_shows_welcome_and_tools() {
     let h = harness(|_| {});
-    // CUSTOM(kelongyan): the fork's Home (custom/home.rs) has a plain title row and tool chips.
-    h.get_by_label("PdfCraft");
-    assert!(h.query_all_by_label("Organize pages").count() >= 2, "tool list + home chip");
+    // CUSTOM(kelongyan): the fork's Home (custom/home.rs) is a GoodNotes-style document library.
+    h.get_by_label("Documents");
     h.get_by_label("Open file");
-    for chip in ["Add comments", "Prepare a form", "Edit a PDF", "Protect a PDF", "Combine files", "Scan & OCR", "Export a PDF"] {
-        assert!(h.query_all_by_label(chip).count() >= 2, "{chip}: tool list + home chip");
-    }
+    h.get_by_label("New folder");
 }
 
 #[test]
@@ -76,7 +73,10 @@ fn painted_text(h: &Harness<'static, PdfCraftApp>) -> Vec<(String, bool, egui::R
         .collect()
 }
 
+// CUSTOM(kelongyan): the fork's Home is a document library; the Recent list left Home and this
+// upstream test waits with it. The mechanism (app.recent, the Open Recent menu) is unchanged.
 #[test]
+#[ignore = "the fork's Home no longer lists recent files"]
 fn long_recent_names_and_paths_are_cut_before_the_page_count() {
     let name = format!("{}.pdf", "Quarterly report final version ".repeat(10));
     let path = format!("/{}/{name}", "A folder with a long name".repeat(8));
@@ -93,7 +93,9 @@ fn long_recent_names_and_paths_are_cut_before_the_page_count() {
     }
 }
 
+// CUSTOM(kelongyan): see the note above the previous test.
 #[test]
+#[ignore = "the fork's Home no longer lists recent files"]
 fn home_removes_one_recent_file_or_clears_them_all() {
     // Tall enough that the Recent list is on screen without scrolling.
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 1600.0)).build_eframe(|_cc| {
@@ -1069,8 +1071,8 @@ fn closing_the_last_active_tab_selects_the_previous_one_then_home() {
         assert!(app.session.get(ids[removed]).is_none());
     }
     assert_eq!(h.state().active, None);
-    // CUSTOM(kelongyan): the fork's Home title replaced the upstream welcome line.
-    h.get_by_label("PdfCraft");
+    // CUSTOM(kelongyan): the fork's Home is a document library titled Documents.
+    h.get_by_label("Documents");
 }
 
 #[test]

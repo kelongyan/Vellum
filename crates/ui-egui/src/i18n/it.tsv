@@ -2100,6 +2100,7 @@
 	Lines +/−	Righe +/−
 	@{login}: {prs} PRs, {commits} commits, +{added} / −{deleted} lines (Δ {delta}), +{bin_added} / −{bin_deleted} binary assets, {first} – {last}	@{login}: {prs} PR, {commits} commit, +{added} / −{deleted} righe (Δ {delta}), +{bin_added} / −{bin_deleted} risorse binarie, {first} – {last}
 @plural	{n} page|{n} pages	{n} pagina|{n} pagine
+@plural	{n} file|{n} files	{n} file|{n} file
 @plural	{n} field|{n} fields	{n} campo|{n} campi
 @plural	{n} field name collides with earlier files and will be renamed: {list}|{n} field names collide with earlier files and will be renamed: {list}	{n} nome di campo è in conflitto con i file precedenti e verrà rinominato: {list}|{n} nomi di campo sono in conflitto con i file precedenti e verranno rinominati: {list}
 
@@ -2360,3 +2361,12 @@ animation effects	Off	Disattivati
 	This document is trying to open a local file:	Questo documento sta tentando di aprire un file locale:
 	Move tag earlier	Sposta tag prima
 	Move tag later	Sposta tag dopo
+	Documents	Documenti
+	New folder	Nuova cartella
+	Move to folder…	Sposta nella cartella…
+	Locate file…	Individua file…
+	Remove from Documents	Rimuovi da Documenti
+	The file was moved or deleted	Il file è stato spostato o eliminato
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Trascina un PDF ovunque per aprirlo, oppure crea una cartella per organizzare i documenti.
+	Star {name}	Aggiungi {name} ai preferiti
+	Unstar {name}	Rimuovi {name} dai preferiti

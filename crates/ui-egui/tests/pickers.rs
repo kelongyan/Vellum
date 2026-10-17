@@ -574,8 +574,8 @@ fn a_late_startup_url_preserves_home_even_after_all_other_tabs_are_closed() {
         deliver_startup(&h, "late.pdf", fixture(1));
         h.run_steps(2);
         assert_eq!(h.state().active, None, "Home stays selected (closed tabs: {close})");
-        // CUSTOM(kelongyan): the fork's Home title replaced the upstream welcome line.
-        h.get_by_label("PdfCraft");
+        // CUSTOM(kelongyan): the fork's Home is a document library titled Documents.
+        h.get_by_label("Documents");
         h.get_by_label("late.pdf").click();
         h.run_steps(2);
         assert!(h.state().active.is_some());

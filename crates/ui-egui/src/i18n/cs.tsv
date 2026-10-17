@@ -2089,6 +2089,7 @@ key	Space	Mezerník
 	XFA form: its fields and its XFA data are kept in step, so other viewers show what you fill in.	Formulář XFA: jeho pole a data XFA se udržují ve shodě, takže ostatní prohlížeče zobrazí, co vyplníte.
 	Switch to two-page view first to show the cover page	Titulní stránku zobrazíte, až přepnete na dvoustránkové zobrazení
 @plural	{n} page|{n} pages	{n} stránka|{n} stránky|{n} stránek
+@plural	{n} file|{n} files	{n} soubor|{n} soubory|{n} souborů
 @plural	{n} field|{n} fields	{n} pole|{n} pole|{n} polí
 	Optimizing… removing user data	Optimalizace… odebírání uživatelských dat
 	Optimizing… image {d} of {t}	Optimalizace… obrázek {d} z {t}
@@ -2424,3 +2425,12 @@ animation effects	Off	Vypnuto
 	This document is trying to open a local file:	Tento dokument se pokouší otevřít místní soubor:
 	Move tag earlier	Přesunout značku dříve
 	Move tag later	Přesunout značku později
+	Documents	Dokumenty
+	New folder	Nová složka
+	Move to folder…	Přesunout do složky…
+	Locate file…	Najít soubor…
+	Remove from Documents	Odebrat z Dokumentů
+	The file was moved or deleted	Soubor byl přesunut nebo smazán
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Přetažením PDF kamkoli ho otevřete, nebo vytvořte složku pro uspořádání dokumentů.
+	Star {name}	Přidat {name} hvězdičku
+	Unstar {name}	Odebrat {name} hvězdičku

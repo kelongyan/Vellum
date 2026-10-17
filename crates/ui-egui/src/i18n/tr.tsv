@@ -1937,6 +1937,7 @@
 	This form's scripts are turned off because one ran too long. Reopen the document to run them again.	Bu formun komut dosyaları kapatıldı, çünkü biri çok uzun süre çalıştı. Yeniden çalıştırmak için belgeyi yeniden açın.
 	XFA form: its fields and its XFA data are kept in step, so other viewers show what you fill in.	XFA formu: Diğer görüntüleyicilerin doldurduklarınızı göstermesi için alanları ve XFA verileri eşitlenir.
 @plural	{n} page|{n} pages	{n} sayfa
+@plural	{n} file|{n} files	{n} dosya
 @plural	{n} field|{n} fields	{n} alan
 	Switch to two-page view first to show the cover page	Kapak sayfasını göstermek için önce iki sayfalı görünüme geçin
 	Page display: {layout}	Sayfa görünümü: {layout}
@@ -2346,3 +2347,12 @@ animation effects	Off	Kapalı
 	This document is trying to open a local file:	Bu belge yerel bir dosya açmaya çalışıyor:
 	Move tag earlier	Etiketi daha erken taşı
 	Move tag later	Etiketi daha geç taşı
+	Documents	Belgeler
+	New folder	Yeni klasör
+	Move to folder…	Klasöre taşı…
+	Locate file…	Dosyayı bul…
+	Remove from Documents	Belgelerden kaldır
+	The file was moved or deleted	Dosya taşındı veya silindi
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Açmak için bir PDF'i herhangi bir yere bırakın veya belgelerinizi düzenlemek için bir klasör oluşturun.
+	Star {name}	{name} öğesini yıldızla
+	Unstar {name}	{name} yıldızını kaldır

@@ -6,6 +6,8 @@
 //! `pdfcraft-engine`.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
+// CUSTOM(kelongyan): the settings JSON outgrew the default macro nesting (the library key).
+#![recursion_limit = "256"]
 
 /// Translate an English UI string into the current language (see [`i18n`]).
 macro_rules! tl {
@@ -551,6 +553,8 @@ pub struct PdfCraftApp {
     pub palette_query: String,
     pub all_tools_expanded: bool,
     pub recent: Vec<RecentFile>,
+    /// CUSTOM(kelongyan): the fork's document library behind Home (custom/home.rs).
+    pub library: custom::library::Library,
     /// Preferences: reopen the files that were open when PdfCraft last closed (#442).
     pub reopen_last_session: bool,
     /// The files open when PdfCraft last closed, read from the settings for
@@ -906,6 +910,7 @@ impl PdfCraftApp {
             palette_query: String::new(),
             all_tools_expanded: false,
             recent: Vec::new(),
+            library: custom::library::Library::default(),
             reopen_last_session: false,
             last_session: Default::default(),
             quit_session: None,
@@ -1317,6 +1322,9 @@ impl PdfCraftApp {
         }
         if let Some(p) = path {
             self.recent.retain(|r| r.path != p);
+            // CUSTOM(kelongyan): every opened PDF is remembered in the fork's document library.
+            let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+            self.library.remember(&p, name, pages, size, now);
             self.recent.insert(0, RecentFile { name: name.to_string(), path: p, pages, size });
             self.recent.truncate(12);
         }
@@ -2103,6 +2111,8 @@ impl PdfCraftApp {
             "docking_left_open": self.left_open,
             "docking_right": self.right,
             "recent": self.recent,
+            // CUSTOM(kelongyan): the fork's document library (folders and filed documents).
+            "library": self.library,
             "reopen_last_session": self.reopen_last_session,
             // Kept only while the preference is on.
             "last_session": self.reopen_last_session.then(|| self.session_to_save()),
@@ -2186,6 +2196,8 @@ impl PdfCraftApp {
             let r: Vec<RecentFile> = r.into_iter().filter(|f| std::path::Path::new(&f.path).exists()).collect();
             self.recent = r;
         }
+        // CUSTOM(kelongyan): the fork's document library behind Home.
+        self.library.restore(&v["library"]);
         if let Some(on) = v["reopen_last_session"].as_bool() {
             self.reopen_last_session = on;
         }
