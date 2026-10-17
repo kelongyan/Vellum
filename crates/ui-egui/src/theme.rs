@@ -363,6 +363,9 @@ fn font_definitions_for_platform(prefer_hans: bool, platform: FontPolicyPlatform
         stack.extend(fallback.iter().cloned());
         fonts.families.insert(FontFamily::Name(fam.into()), stack);
     }
+    // CUSTOM(kelongyan): the fork's local Chinese UI font (HarmonyOS Sans SC), when present.
+    #[cfg(not(target_arch = "wasm32"))]
+    crate::custom::fonts::apply(&mut fonts);
     fonts
 }
 
