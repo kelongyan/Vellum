@@ -2305,6 +2305,7 @@ animation effects	Off	Disattivati
 	Preparing sheet {done} of {total} for printing…	Preparazione del foglio {done} di {total} per la stampa…
 	Opening the browser's print dialog…	Apertura della finestra di stampa del browser…
 	Couldn't print from the browser ({e}); downloaded {name} to print instead	Impossibile stampare dal browser ({e}); è stato scaricato {name} da stampare
+	Tools	Strumenti
 	Tools panel side	Lato del pannello Strumenti
 	Add comment	Aggiungi commento
 	Change tag properties	Modifica proprietà del tag

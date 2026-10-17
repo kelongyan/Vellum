@@ -73,6 +73,8 @@ mod bidi;
 pub mod bulk_fields;
 mod dialogs;
 mod edit_text_ui;
+// CUSTOM(kelongyan): this fork's own UI files (see Rule/fork-customization.md).
+mod custom;
 mod editing;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod file_watch;

@@ -34,9 +34,13 @@ fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, P
 #[test]
 fn home_shows_welcome_and_tools() {
     let h = harness(|_| {});
-    h.get_by_label_contains("Welcome to PdfCraft");
-    assert!(h.query_all_by_label("Organize pages").count() >= 2, "tool list + home card");
+    // CUSTOM(kelongyan): the fork's Home (custom/home.rs) has a plain title row and tool chips.
+    h.get_by_label("PdfCraft");
+    assert!(h.query_all_by_label("Organize pages").count() >= 2, "tool list + home chip");
     h.get_by_label("Open file");
+    for chip in ["Add comments", "Prepare a form", "Edit a PDF", "Protect a PDF", "Combine files", "Scan & OCR", "Export a PDF"] {
+        assert!(h.query_all_by_label(chip).count() >= 2, "{chip}: tool list + home chip");
+    }
 }
 
 #[test]
@@ -1065,7 +1069,8 @@ fn closing_the_last_active_tab_selects_the_previous_one_then_home() {
         assert!(app.session.get(ids[removed]).is_none());
     }
     assert_eq!(h.state().active, None);
-    h.get_by_label_contains("Welcome to PdfCraft");
+    // CUSTOM(kelongyan): the fork's Home title replaced the upstream welcome line.
+    h.get_by_label("PdfCraft");
 }
 
 #[test]

@@ -2317,6 +2317,7 @@ animation effects	Off	معطّلة
 	Preparing sheet {done} of {total} for printing…	جارٍ تجهيز الورقة {done} من {total} للطباعة…
 	Opening the browser's print dialog…	جارٍ فتح مربع حوار الطباعة في المتصفح…
 	Couldn't print from the browser ({e}); downloaded {name} to print instead	تعذّرت الطباعة من المتصفح ({e})؛ نُزّل {name} لطباعته بدلًا من ذلك
+	Tools	الأدوات
 	Tools panel side	جانب لوحة الأدوات
 	Add comment	إضافة تعليق
 	Change tag properties	تغيير خصائص الوسم

@@ -2318,6 +2318,7 @@ animation effects	Off	Вимкнено
 	Preparing sheet {done} of {total} for printing…	Підготовка до друку аркуша {done} з {total}…
 	Opening the browser's print dialog…	Відкривається діалог друку браузера…
 	Couldn't print from the browser ({e}); downloaded {name} to print instead	Не вдалося надрукувати з браузера ({e}); натомість для друку завантажено файл {name}
+	Tools	Інструменти
 	Tools panel side	Бік панелі інструментів
 	Add comment	Додати коментар
 	Change tag properties	Змінити властивості тегу

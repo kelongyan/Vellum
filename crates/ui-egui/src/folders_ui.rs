@@ -283,6 +283,9 @@ impl PdfCraftApp {
 
 /// The Home view's Folders section (desktop only: the web build has no folders to read).
 #[cfg(not(target_arch = "wasm32"))]
+// CUSTOM(kelongyan): the fork's Home renders its own folders section (custom/home.rs); this
+// upstream layout is kept for reference and future merges but is no longer called.
+#[allow(dead_code)]
 pub(crate) fn section(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     use egui::{Align2, CornerRadius, Rect, Sense, vec2};
 
