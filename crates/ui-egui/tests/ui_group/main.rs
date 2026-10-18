@@ -15,6 +15,8 @@ mod pdf_links;
 mod protect;
 mod redact;
 mod text_select;
+// CUSTOM(kelongyan): the fork's motion ladder, seen through the mode-bar underline.
 mod theme;
+mod underline;
 mod updates;
 mod xfa;

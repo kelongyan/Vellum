@@ -56,18 +56,17 @@ pub const TAP: Spec = Spec { enter: 0.06, exit: 0.10, curve: emath::easing::quad
 /// Hover, and anything else the pointer drives one pixel at a time.
 pub const MICRO: Spec = Spec { enter: 0.09, exit: 0.15, curve: emath::easing::cubic_out };
 
-/// Small surfaces: menus, tooltips.
+/// Small surfaces: menus, tooltips, and the fade egui runs for every `Area` it opens.
 ///
-/// egui fades the areas it animates itself over `Style::animation_time`, which this app leaves at
-/// egui's own 0.2 s — the span of [`MEDIUM`] below, not of this rung. Aligning the two clocks is a
-/// decision for the pass that opens those surfaces, since it moves every menu in the window at once.
-#[cfg_attr(not(test), expect(dead_code, reason = "P1 lights its first surfaces against this rung"))]
+/// `theme::apply` sets `Style::animation_time` to this rung's `enter`, so the surfaces egui fades
+/// itself and the surfaces the fork travels by hand come and go on one clock. The two are not the
+/// same shape — egui fades over `enter` in both directions with `quadratic_out`, while a fork
+/// surface leaves over `exit` with `cubic_out` — so this is one clock, not one animation.
 pub const SMALL: Spec = Spec { enter: 0.14, exit: 0.11, curve: emath::easing::cubic_out };
 
 /// A move: the chrome sliding from one tab to the next, a panel taking its width. Both directions
 /// take as long as each other — a position has no "coming" and "going", and a move that took
 /// longer one way would read as the chrome leaning rather than moving.
-#[cfg_attr(not(test), expect(dead_code, reason = "P1 slides the tab indicator along this rung"))]
 pub const SLIDE: Spec = Spec { enter: 0.16, exit: 0.16, curve: emath::easing::cubic_out };
 
 /// Cards that mean it: dialogs, the command palette, notices. `circular_out` decelerates hardest
@@ -93,7 +92,6 @@ const KEEP_AFTER_PRUNE: usize = MAX_TRACKS * 3 / 4;
 /// What a value is worth before anyone looked at it.
 #[derive(Clone, Copy, Debug)]
 enum Fresh {
-    #[cfg_attr(not(test), expect(dead_code, reason = "P1's sliding tab indicator is the first value that has always been there"))]
     /// Already at the target. For values a widget has always had — a position, a width, a colour
     /// mix — where sliding in from nothing would be the widget moving, not the interface changing.
     At,
@@ -234,7 +232,6 @@ pub fn animated(ctx: &Context) -> bool {
 /// For a surface coming and going, use [`switch`], which animates even the first time the window
 /// draws it.
 #[must_use = "the travel is the value; ask for it every pass"]
-#[cfg_attr(not(test), expect(dead_code, reason = "The first position to travel is P1's tab indicator"))]
 pub fn track(ctx: &Context, id: Id, target: f32, spec: Spec) -> f32 {
     read(ctx, id, target, spec, Fresh::At)
 }
@@ -499,6 +496,22 @@ mod tests {
         let broken = Spec { enter: 0.1, exit: 0.1, curve: |_| f32::NAN };
         assert_eq!(read_at(&ctx, Id::new("broken"), 1.0, broken, Fresh::From(0.0), 1.0), 1.0);
         assert_eq!(read_at(&ctx, Id::new("broken"), 0.0, broken, Fresh::From(0.0), 1.05), 0.0);
+    }
+
+    #[test]
+    fn the_surfaces_egui_fades_read_the_ladder() {
+        // `theme::apply` is what hands egui's own fade the ladder's small-surface rung, so menus
+        // and tooltips arrive over `SMALL.enter` rather than over egui's 0.2 s.
+        let ctx = Context::default();
+        assert_eq!(ctx.global_style().animation_time, 0.2, "what egui brings to us");
+        crate::theme::apply(&ctx, crate::theme::ThemeKind::Light);
+        assert_eq!(ctx.global_style().animation_time, SMALL.enter, "the fork's clock for the same surfaces");
+        // A host that asked for no easing keeps it: this is where `motion` puts animation effects
+        // off, and where the headless tests hold the picture still for determinism.
+        crate::theme::apply(&ctx, crate::theme::ThemeKind::Dark);
+        ctx.global_style_mut(|style| style.animation_time = 0.0);
+        crate::theme::apply(&ctx, crate::theme::ThemeKind::Light);
+        assert_eq!(ctx.global_style().animation_time, 0.0, "nothing travels, and nothing is restored");
     }
 
     #[test]

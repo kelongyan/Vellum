@@ -446,6 +446,15 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
         s.text_styles.insert(egui::TextStyle::Small, regular(11.0));
         s.text_styles.insert(egui::TextStyle::Heading, semibold(17.0));
         s.interaction.tooltip_delay = 0.35;
+        // CUSTOM(kelongyan): the surfaces egui fades for us - menus, tooltips, every `Area` -
+        // come in over the fork's `tempo::SMALL` rung rather than egui's own 0.2 s, so the ladder
+        // has one clock for its own travels and for the ones egui still owns. A host that set 0.0
+        // asked for no easing at all: `motion` does that when animation effects are off, and the
+        // headless tests do it for determinism. Both keep their 0.0, and `motion` hands back the
+        // aligned time when it turns easing on, since it reads this value before anything else can.
+        if s.animation_time > 0.0 {
+            s.animation_time = crate::custom::tempo::SMALL.enter;
+        }
     });
     let style = ctx.global_style();
     ctx.set_style_of(egui::Theme::Light, style.clone());

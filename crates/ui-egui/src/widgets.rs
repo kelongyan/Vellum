@@ -122,7 +122,30 @@ pub fn mode_tab(ui: &mut egui::Ui, label: &str, active: bool) -> Response {
     let body = rect.translate(press.offset());
     ui.painter().text(body.center(), Align2::CENTER_CENTER, label, font, if active { t.text } else { t.text_muted });
     if active {
-        let r = Rect::from_min_max(rect.left_bottom() + vec2(10.0, -2.0), rect.right_bottom() - vec2(10.0, 0.0));
+        // CUSTOM(kelongyan): the underline travels along its row instead of appearing at its new
+        // end in one frame. The id is the row's: `ui.id()` is the horizontal the tabs sit in, so one
+        // strip shares the two travels and a dialog's tab row never joins the mode bar's. Only the
+        // left edge and the width travel; the line is painted on the active tab's own bottom edge,
+        // so a row a growing dialog moved sideways keeps a line that follows it instead of one that
+        // was left behind. Upstream painted it at the tab's rect; with animation effects off
+        // [`tempo::track`] answers with that same rect in the pass it is asked, so tests and
+        // screenshots see what they saw before.
+        use crate::custom::tempo;
+        let row = ui.id().with("mode-tab-underline");
+        let bottom = rect.left_bottom();
+        let (rest_x, rest_w) = (bottom.x + 10.0, (rect.width() - 20.0).max(0.0));
+        // egui measures a surface it has not laid out yet in a sizing pass, and the rects it hands
+        // back there are guesses the real size replaces a pass later. Asking the ladder to remember
+        // a guess would make the line travel to where the dialog was drawn the first real pass,
+        // sliding across the panel on its way to a row that has never moved: a fresh row appears
+        // where its tab sits. So the measuring pass paints the rest, and the first pass with a real
+        // size is the one the ladder learns.
+        let (x, w) = if ui.is_sizing_pass() {
+            (rest_x, rest_w)
+        } else {
+            (tempo::track(ui.ctx(), row.with("x"), rest_x, tempo::SLIDE), tempo::track(ui.ctx(), row.with("w"), rest_w, tempo::SLIDE))
+        };
+        let r = Rect::from_min_size(egui::pos2(x, bottom.y - 2.0), vec2(w, 2.0));
         ui.painter().rect_filled(r, CornerRadius { nw: 1, ne: 1, sw: 0, se: 0 }, t.accent);
     }
     theme::hand(resp)
