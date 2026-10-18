@@ -39,10 +39,10 @@ fn click_tab(h: &Harness<'static, PdfCraftApp>, label: &str) {
     h.get_all_by_label(label).find(|node| (node.rect().center() - centre).length() < 1.0).expect("the tab").click();
 }
 
-/// Where upstream painted the underline: the active tab's own bottom edge, ten points short at
-/// both ends.
+/// Where the line is painted: on the active tab's bottom edge, raised two points out of the mode
+/// bar's clip and its divider, and ten points short at both ends.
 fn expected(rect: Rect) -> Rect {
-    Rect::from_min_max(rect.left_bottom() + Vec2::new(10.0, -2.0), rect.right_bottom() - Vec2::new(10.0, 0.0))
+    Rect::from_min_size(rect.left_bottom() + Vec2::new(10.0, -4.0), Vec2::new((rect.width() - 20.0).max(0.0), 2.0))
 }
 
 /// The bar on the row `rect` belongs to, found by where it sits: two points tall, filled, with no

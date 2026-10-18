@@ -145,7 +145,13 @@ pub fn mode_tab(ui: &mut egui::Ui, label: &str, active: bool) -> Response {
         } else {
             (tempo::track(ui.ctx(), row.with("x"), rest_x, tempo::SLIDE), tempo::track(ui.ctx(), row.with("w"), rest_w, tempo::SLIDE))
         };
-        let r = Rect::from_min_size(egui::pos2(x, bottom.y - 2.0), vec2(w, 2.0));
+        // Two points above the tab's bottom edge, not on it. In the mode bar the panel clips its
+        // content a point short of the tab and its divider covers the last one, so a line drawn on
+        // the edge itself rendered as nothing at all: measured on a rendered frame, the tab's own
+        // bottom edge had no accent pixels in any row. Raised by two it is inside the clip and
+        // clear of the divider. A dialog's tab row is clipped by nothing, and two points up from
+        // its tab still reads as the tab's underline.
+        let r = Rect::from_min_size(egui::pos2(x, bottom.y - 4.0), vec2(w, 2.0));
         ui.painter().rect_filled(r, CornerRadius { nw: 1, ne: 1, sw: 0, se: 0 }, t.accent);
     }
     theme::hand(resp)
