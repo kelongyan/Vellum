@@ -42,6 +42,13 @@ pub struct Spec {
 /// an animation is exactly its target and the window stops asking for frames on time.
 const SNAP: f32 = 1e-4;
 
+/// Two targets closer than this are the same target. A position a layout rounded differently in
+/// its last bits is not a new target: aiming at it would restart a travel that had already
+/// arrived, and ask for frames that move the value by less than a pixel. The ladder's values are
+/// pixels and 0.0-1.0 mixes, where this is a thousandth of the former and a tenth of a percent of
+/// the latter.
+const SAME: f32 = 1e-3;
+
 /// The sink of a press: the pointer has to feel it before it lifts. Slower to release than to
 /// press, because the pointer is what ends it.
 pub const TAP: Spec = Spec { enter: 0.06, exit: 0.10, curve: emath::easing::quadratic_out };
@@ -49,21 +56,27 @@ pub const TAP: Spec = Spec { enter: 0.06, exit: 0.10, curve: emath::easing::quad
 /// Hover, and anything else the pointer drives one pixel at a time.
 pub const MICRO: Spec = Spec { enter: 0.09, exit: 0.15, curve: emath::easing::cubic_out };
 
-/// Small surfaces: menus, tooltips, the chrome sliding from one tab to the next.
+/// Small surfaces: menus, tooltips.
 ///
 /// egui fades the areas it animates itself over `Style::animation_time`, which this app leaves at
 /// egui's own 0.2 s — the span of [`MEDIUM`] below, not of this rung. Aligning the two clocks is a
 /// decision for the pass that opens those surfaces, since it moves every menu in the window at once.
-#[allow(dead_code)] // P1 lights its first surfaces against the rungs above; this one is next.
+#[cfg_attr(not(test), expect(dead_code, reason = "P1 lights its first surfaces against this rung"))]
 pub const SMALL: Spec = Spec { enter: 0.14, exit: 0.11, curve: emath::easing::cubic_out };
+
+/// A move: the chrome sliding from one tab to the next, a panel taking its width. Both directions
+/// take as long as each other — a position has no "coming" and "going", and a move that took
+/// longer one way would read as the chrome leaning rather than moving.
+#[cfg_attr(not(test), expect(dead_code, reason = "P1 slides the tab indicator along this rung"))]
+pub const SLIDE: Spec = Spec { enter: 0.16, exit: 0.16, curve: emath::easing::cubic_out };
 
 /// Cards that mean it: dialogs, the command palette, notices. `circular_out` decelerates hardest
 /// of the ladder, which is what a surface that grew into place needs.
-#[allow(dead_code)] // P2 raises its surfaces against this rung.
+#[cfg_attr(not(test), expect(dead_code, reason = "P2 raises its surfaces against this rung"))]
 pub const MEDIUM: Spec = Spec { enter: 0.20, exit: 0.14, curve: emath::easing::circular_out };
 
 /// Workspaces: a panel opening, the outline taking its room.
-#[allow(dead_code)] // P3 opens its panels against this rung.
+#[cfg_attr(not(test), expect(dead_code, reason = "P3 opens its panels against this rung"))]
 pub const LARGE: Spec = Spec { enter: 0.26, exit: 0.18, curve: emath::easing::cubic_out };
 
 /// Most travels kept, and how many are dropped when the cap is reached. A window this size reads a
@@ -80,7 +93,7 @@ const KEEP_AFTER_PRUNE: usize = MAX_TRACKS * 3 / 4;
 /// What a value is worth before anyone looked at it.
 #[derive(Clone, Copy, Debug)]
 enum Fresh {
-    #[allow(dead_code)] // P1's sliding tab indicator is the first value that has always been there.
+    #[cfg_attr(not(test), expect(dead_code, reason = "P1's sliding tab indicator is the first value that has always been there"))]
     /// Already at the target. For values a widget has always had — a position, a width, a colour
     /// mix — where sliding in from nothing would be the widget moving, not the interface changing.
     At,
@@ -151,7 +164,9 @@ impl Tracks {
     fn update(&mut self, id: Id, target: f32, spec: Spec, now: f64, fresh: Fresh) -> (f32, f32) {
         let key = id.value();
         if let Some(track) = self.tracks.get_mut(&key) {
-            if track.to != target {
+            // A target a layout re-derived a hair differently is the same target: restarting the
+            // travel for it would ask for a frame every pass to move the value by nothing.
+            if (track.to - target).abs() > SAME {
                 track.aim(target, now, spec);
             } else {
                 track.seen = now;
@@ -214,15 +229,19 @@ pub fn animated(ctx: &Context) -> bool {
 /// travel begins there — so nothing ever jumps to cover a frame.
 ///
 /// Use this for a value the widget always had, like a position, a width or a colour mix, where
-/// unseen before means already there. For a surface coming and going, use [`switch`], which
-/// animates even the first time the window draws it.
-#[allow(dead_code)] // The first position to travel is P1's tab indicator; the rungs above are staged too.
+/// unseen before means already there. A value that only moves takes [`SLIDE`], whose two
+/// directions are the same length; [`SMALL`] and its neighbours are for surfaces that come and go.
+/// For a surface coming and going, use [`switch`], which animates even the first time the window
+/// draws it.
+#[must_use = "the travel is the value; ask for it every pass"]
+#[cfg_attr(not(test), expect(dead_code, reason = "The first position to travel is P1's tab indicator"))]
 pub fn track(ctx: &Context, id: Id, target: f32, spec: Spec) -> f32 {
     read(ctx, id, target, spec, Fresh::At)
 }
 
 /// [`track`] between two states: 1.0 while `on`, 0.0 when not. Unseen before means not yet shown,
 /// so the pass a dialog appears in it answers with 0.0 and travels in from there.
+#[must_use = "the travel is the value; ask for it every pass"]
 pub fn switch(ctx: &Context, id: Id, on: bool, spec: Spec) -> f32 {
     read(ctx, id, if on { 1.0 } else { 0.0 }, spec, Fresh::From(0.0))
 }
@@ -287,7 +306,8 @@ mod tests {
     fn warm_up(ctx: &Context) {
         let id = Id::new("warm-up");
         pass(ctx, 0.0, |ctx| {
-            switch(ctx, id, false, MICRO);
+            // Warming egui's own first passes, not reading the value.
+            let _ = switch(ctx, id, false, MICRO);
         });
         settled(ctx, 0.02, id, false, MICRO);
     }
@@ -297,7 +317,8 @@ mod tests {
         let ctx = Context::default();
         // egui always draws one more pass after the first, so rest is two passes away.
         let first = pass(&ctx, 0.0, |ctx| {
-            switch(ctx, Id::new("idle"), false, MICRO);
+            // The first pass is here to warm egui, not to read the value.
+            let _ = switch(ctx, Id::new("idle"), false, MICRO);
         });
         assert_eq!(first, Duration::ZERO, "the bootstrap pass");
         let (value, delay) = settled(&ctx, 0.02, Id::new("idle"), false, MICRO);
@@ -394,6 +415,24 @@ mod tests {
         assert_eq!(track_settled(&ctx, turned + f64::from(SMALL.exit), id, 120.0, SMALL), 120.0);
     }
 
+    #[test]
+    fn a_target_that_barely_moves_does_not_restart_the_travel() {
+        let ctx = Context::default();
+        warm_up(&ctx);
+        let id = Id::new("jitter");
+        assert_eq!(track_settled(&ctx, 2.0, id, 120.0, SMALL), 120.0);
+        // A layout that rounds its last bits differently is not a new target: the value holds and
+        // the window is not asked for another frame.
+        let mut answer = f32::NAN;
+        let delay = pass(&ctx, 2.02, |ctx| answer = track(ctx, id, 120.0005, SMALL));
+        assert_eq!(answer, 120.0, "the value holds");
+        assert_eq!(delay, Duration::MAX, "and nothing asks for frames: {delay:?}");
+        // A target the ladder can see still travels, from wherever the value is.
+        assert_eq!(track_at(&ctx, 2.04, id, 220.0, SMALL), 120.0, "the travel begins here");
+        let moved = track_at(&ctx, 2.06, id, 220.0, SMALL);
+        assert!(moved > 120.0 && moved < 220.0, "{moved}");
+    }
+
     fn track_at(ctx: &Context, time: f64, id: Id, target: f32, spec: Spec) -> f32 {
         let mut answer = f32::NAN;
         pass(ctx, time, |ctx| answer = track(ctx, id, target, spec));
@@ -464,10 +503,26 @@ mod tests {
 
     #[test]
     fn the_ladder_runs_up_and_the_two_directions_mean_two_things() {
+        /// What a rung is for, which is what decides how its two directions relate.
+        #[derive(Clone, Copy)]
+        enum Direction {
+            /// The pointer drives it and ends it, so leaving is the slower half.
+            Pointer,
+            /// A surface comes and goes: appearing is calm, getting out of the way is quick.
+            Surface,
+            /// A value that only moves, with no coming and going: both ways take as long.
+            Move,
+        }
         // Quickest to slowest: what the pointer drives, then what the user opens.
-        let ladder = [TAP, MICRO, SMALL, MEDIUM, LARGE];
-        let pointer_states = 2;
-        for (place, spec) in ladder.iter().copied().enumerate() {
+        let ladder = [
+            (TAP, Direction::Pointer),
+            (MICRO, Direction::Pointer),
+            (SMALL, Direction::Surface),
+            (SLIDE, Direction::Move),
+            (MEDIUM, Direction::Surface),
+            (LARGE, Direction::Surface),
+        ];
+        for (place, (spec, direction)) in ladder.iter().copied().enumerate() {
             assert!(spec.enter > SNAP && spec.exit > SNAP, "{spec:?}");
             assert!(spec.enter < 0.5, "{spec:?} is a wait, not an animation");
             assert_eq!((spec.curve)(0.0), 0.0, "{spec:?} does not start where it should");
@@ -476,13 +531,14 @@ mod tests {
             assert!((0.5..=1.0).contains(&half), "{spec:?} does not ease out: {half}");
             // Each rung is slower than the one before it, across the whole ladder.
             if place > 0 {
-                assert!(ladder[place - 1].enter < spec.enter, "{spec:?} is not slower than {:?}", ladder[place - 1]);
+                assert!(ladder[place - 1].0.enter < spec.enter, "{spec:?} is not slower than {:?}", ladder[place - 1].0);
             }
-            // What the pointer ends leaves slower than it arrived; what the user ends leaves faster.
-            if place < pointer_states {
-                assert!(spec.exit > spec.enter, "{spec:?} leaves faster than it arrives");
-            } else {
-                assert!(spec.exit < spec.enter, "{spec:?} leaves slower than it arrives");
+            // What the pointer ends leaves slower than it arrived; a surface leaves faster; a
+            // position has no directions to tell apart.
+            match direction {
+                Direction::Pointer => assert!(spec.exit > spec.enter, "{spec:?} leaves faster than it arrives"),
+                Direction::Surface => assert!(spec.exit < spec.enter, "{spec:?} leaves slower than it arrives"),
+                Direction::Move => assert_eq!(spec.exit, spec.enter, "{spec:?} is slower one way than the other"),
             }
         }
     }
@@ -496,7 +552,8 @@ mod tests {
             let time = 1.0 + f64::from(batch) * 0.1;
             pass(&ctx, time, |ctx| {
                 for i in 0..1000_u64 {
-                    switch(ctx, Id::new(("many", batch, i)), true, MICRO);
+                    // Churning the map, not reading any of the values.
+                    let _ = switch(ctx, Id::new(("many", batch, i)), true, MICRO);
                 }
             });
         }
