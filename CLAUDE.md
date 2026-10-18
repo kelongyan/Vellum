@@ -2,6 +2,26 @@
 
 PdfCraft is a clean-room, open-source, Rust-native PDF application targeting Adobe Acrobat Pro parity. It runs natively on macOS, Windows, Linux and FreeBSD, and on the web via WASM. It is the sibling of `../photocraft` (a Photoshop-class editor) and follows the same conventions.
 
+<!-- CUSTOM(kelongyan): fork overlay. One contiguous block; the upstream text below is unchanged. -->
+
+## This fork
+
+This is **kelongyan's fork** of `storytold/pdfcraft` (origin `kelongyan/pdfcraft`, pushable; upstream `storytold/pdfcraft`, PR-only): local customization on top of a read-only upstream mirror. The customization today is the removal of Discord and of the Home screen's ArtCraft community card, plus a fork-authored Home: a GoodNotes-style document library with first-page thumbnails (HarmonyOS Sans SC as the local runtime Chinese UI font; opening a document collapses All tools and keeps the outline in view; `crates/ui-egui/src/custom/`; 52 `CUSTOM(kelongyan)` marks across 26 files, plus a fork motion ladder in `custom/tempo.rs`). Before any work here, read `RULE.md` and the `Rule/` documents it indexes — both gitignored, local only. Authority order: `AGENTS.md` > this file > `RULE.md`/`Rule/`.
+
+**No compilation or packaging without the owner's explicit command** (`Rule/build-and-packaging.md`): no `cargo build`/`run`/`test`/`clippy`/`bench`, no build-producing `xtask` task, nothing that writes to `target/` or `dist/` — with one standing exception: **UI refactor work (interface changes under `crates/ui-egui/**`) compiles and packages to the desktop by default once its tests pass**, no further command needed (owner, 2026-10-17). Read-only work (files, `git` queries, Grep/Glob) is unrestricted. The standing command 「编译打包」 runs the release build, the Windows MSI packaging and the move of the artifacts to the desktop in one pass.
+
+**Customization discipline** (`Rule/fork-customization.md`): changes to upstream files stay minimal, contiguous and wrapped in `CUSTOM(kelongyan)` markers; new files are preferred (the reserved seam is `crates/ui-egui/src/custom/`). After every upstream merge, `git grep "CUSTOM("` must not lose a mark; `Rule/sync-log.md` records each merge.
+
+**The paths in "Start every session here" don't exist in this checkout.** `plan/` (`STATUS.md`, `execution-plan.md`, `architecture.md`, `README.md`, `adr/`, `acrobat/`) is upstream-local and was never cloned here; `ROADMAP.md`, `docs/roadmap.md`, `docs/gaps.md`, `docs/target-app-parity.md` and the five other parity docs were deleted from this fork on purpose. Read those steps as upstream-only. For status, direction and the big picture, use:
+
+- `docs/architecture.md` — the layer table (L0–L7), the editing model, rendering, agent control and the quality gates as they are on `main`. This is the standing replacement for `plan/architecture.md`.
+- `parity/acrobat-features.toml` — the machine-readable Acrobat-parity checklist; `shipped` means "exists and tested", never "as good as Acrobat".
+- The `README.md` of the crate you are touching, plus `AGENTS.md`, `RULE.md` and this file.
+
+**Commands, as they are here.** `cargo xtask ci` exists (fmt, clippy `-D warnings`, test, layers, WASM, assets, deny, parity) — the "once `xtask ci` exists (M0)" note below is stale. Scope to the crates you touched: `cargo clippy -p <crate> -j 2 --all-targets -- -D warnings` and `cargo test -p <crate> -j 2`; one test: `cargo test -p <crate> --lib <name> --nocapture`; low on disk: `--profile low-disk` (`docs/development.md`). Every one of these still needs the owner's build command first.
+
+<!-- CUSTOM-END -->
+
 ## Start every session here
 1. Read `plan/STATUS.md`: the current milestone, the next unchecked task and any blockers. `ROADMAP.md` is the one-page summary (stage, numbers, progress log) and `docs/roadmap.md` the milestone table; at the end of every session update the milestone row and add a line to the ROADMAP.md progress log.
    - Read `docs/gaps.md` (the ranked gaps: Acrobat interop, the open-issue backlog, the renderer and a fidelity harness, editing existing content, Pro workflows, 1.0 polish) and `docs/target-app-parity.md` (the numbers and how they are measured) before choosing work. Prefer the gaps over new P2/P3 features, and keep both documents true when things change (`docs/` progress docs follow craftrules `standards/progress-docs.md`: status line, revision history).
