@@ -1139,74 +1139,78 @@ pub(crate) fn preview(app: &mut PdfCraftApp, ctx: &egui::Context, t: &Tokens) {
     // No larger than the GPU takes, or the render would be refused.
     let longest = ctx.input(|i| i.max_texture_side as f32).min(PREVIEW_SIDE);
     let thumbs = &mut app.combine_thumbs;
-    let modal = egui::Modal::new(egui::Id::new("combine-preview")).show(ctx, |ui| {
-        ui.set_width(width);
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(crate::bidi::visual(&f.name)).font(theme::semibold(15.0)));
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if icons::button(ui, "x", 30.0, false, tl!("Close")).clicked() {
-                    close = true;
-                }
-                let of = crate::i18n::fmt(tl!("Page {p} of {n}"), &[("p", &(at + 1).to_string()), ("n", &n.to_string())]);
-                ui.label(egui::RichText::new(of).color(t.text_muted));
+    // CUSTOM(kelongyan): this preview builds its `Modal` directly rather than through
+    // `widgets::show_modal`, so it needs the fork's card rung here too; see `custom/tempo.rs`.
+    let modal = crate::custom::tempo::surface(ctx, crate::custom::tempo::MEDIUM, |ctx| {
+        egui::Modal::new(egui::Id::new("combine-preview")).show(ctx, |ui| {
+            ui.set_width(width);
+            ui.horizontal(|ui| {
+                ui.label(egui::RichText::new(crate::bidi::visual(&f.name)).font(theme::semibold(15.0)));
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if icons::button(ui, "x", 30.0, false, tl!("Close")).clicked() {
+                        close = true;
+                    }
+                    let of = crate::i18n::fmt(tl!("Page {p} of {n}"), &[("p", &(at + 1).to_string()), ("n", &n.to_string())]);
+                    ui.label(egui::RichText::new(of).color(t.text_muted));
+                });
             });
-        });
-        ui.add_space(8.0);
-        // The page, as large as fits.
-        let (area, _) = ui.allocate_exact_size(vec2(width, body_h), Sense::hover());
-        let known = f.sizes.get(page).copied().filter(|(w, h)| paper_size(*w, *h, area.size()).is_some());
-        let (w, h) = known.unwrap_or(FALLBACK_PAGE);
-        let size = paper_size(w, h, area.size() - vec2(8.0, 8.0)).unwrap_or(area.size());
-        let paper = Rect::from_center_size(area.center(), size);
-        let painter = ui.painter_at(area);
-        painter.rect_filled(paper.translate(vec2(0.0, 2.0)), CornerRadius::same(1), t.page_shadow);
-        painter.rect_filled(paper, CornerRadius::ZERO, Color32::WHITE);
-        let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
-        if known.is_some() {
-            let scale = (size.x * ppp / w).min(size.y * ppp / h).min(longest / w.max(h));
-            let px = [w * scale, h * scale].map(|v| (v.max(1.0).ceil() as u32).div_ceil(SIZE_STEP).saturating_mul(SIZE_STEP));
-            let key = Key { source: Arc::as_ptr(&f.bytes) as usize, auth: f.auth, page, px };
-            match thumbs.look(PREVIEW, key) {
-                Look::Ready(tex) => {
-                    painter.image(tex, paper, uv, Color32::WHITE);
-                }
-                Look::Failed(e) => {
-                    let text = crate::i18n::fmt(tl!("Preview unavailable: {e}"), &[("e", &e)]);
-                    painter.text(paper.center(), Align2::CENTER_CENTER, text, theme::regular(13.0), ON_PAPER);
-                }
-                Look::Pending(stand_in) => {
-                    // A smaller render of this page stands in: the last size shown, or its card's.
-                    let card = thumbs.entries.get(&(f.group, page)).filter(|e| e.key.auth == f.auth).and_then(|e| e.tex.as_ref());
-                    if let Some(tex) = stand_in.or(card.map(TextureHandle::id)) {
+            ui.add_space(8.0);
+            // The page, as large as fits.
+            let (area, _) = ui.allocate_exact_size(vec2(width, body_h), Sense::hover());
+            let known = f.sizes.get(page).copied().filter(|(w, h)| paper_size(*w, *h, area.size()).is_some());
+            let (w, h) = known.unwrap_or(FALLBACK_PAGE);
+            let size = paper_size(w, h, area.size() - vec2(8.0, 8.0)).unwrap_or(area.size());
+            let paper = Rect::from_center_size(area.center(), size);
+            let painter = ui.painter_at(area);
+            painter.rect_filled(paper.translate(vec2(0.0, 2.0)), CornerRadius::same(1), t.page_shadow);
+            painter.rect_filled(paper, CornerRadius::ZERO, Color32::WHITE);
+            let uv = Rect::from_min_max(pos2(0.0, 0.0), pos2(1.0, 1.0));
+            if known.is_some() {
+                let scale = (size.x * ppp / w).min(size.y * ppp / h).min(longest / w.max(h));
+                let px = [w * scale, h * scale].map(|v| (v.max(1.0).ceil() as u32).div_ceil(SIZE_STEP).saturating_mul(SIZE_STEP));
+                let key = Key { source: Arc::as_ptr(&f.bytes) as usize, auth: f.auth, page, px };
+                match thumbs.look(PREVIEW, key) {
+                    Look::Ready(tex) => {
                         painter.image(tex, paper, uv, Color32::WHITE);
                     }
-                    if scale.is_finite() && scale > 0.0 {
-                        thumbs.wants.push(Want {
-                            slot: PREVIEW,
-                            key,
-                            bytes: f.bytes.clone(),
-                            password: f.password().map(Arc::from),
-                            scale,
-                            visible: true,
-                        });
+                    Look::Failed(e) => {
+                        let text = crate::i18n::fmt(tl!("Preview unavailable: {e}"), &[("e", &e)]);
+                        painter.text(paper.center(), Align2::CENTER_CENTER, text, theme::regular(13.0), ON_PAPER);
+                    }
+                    Look::Pending(stand_in) => {
+                        // A smaller render of this page stands in: the last size shown, or its card's.
+                        let card = thumbs.entries.get(&(f.group, page)).filter(|e| e.key.auth == f.auth).and_then(|e| e.tex.as_ref());
+                        if let Some(tex) = stand_in.or(card.map(TextureHandle::id)) {
+                            painter.image(tex, paper, uv, Color32::WHITE);
+                        }
+                        if scale.is_finite() && scale > 0.0 {
+                            thumbs.wants.push(Want {
+                                slot: PREVIEW,
+                                key,
+                                bytes: f.bytes.clone(),
+                                password: f.password().map(Arc::from),
+                                scale,
+                                visible: true,
+                            });
+                        }
                     }
                 }
+            } else {
+                icons::paint(ui, Rect::from_center_size(paper.center(), Vec2::splat(36.0)), "eye-off", 36.0, ON_PAPER);
             }
-        } else {
-            icons::paint(ui, Rect::from_center_size(paper.center(), Vec2::splat(36.0)), "eye-off", 36.0, ON_PAPER);
-        }
-        painter.rect_stroke(paper, CornerRadius::ZERO, Stroke::new(1.0, t.border), egui::StrokeKind::Outside);
-        ui.add_space(8.0);
-        // Previous and next, centred below.
-        ui.horizontal(|ui| {
-            ui.add_space((width - 2.0 * 30.0 - 6.0) / 2.0);
-            if ui.add_enabled_ui(at > 0, |ui| icons::button(ui, "chevron-left", 30.0, false, tl!("Previous page"))).inner.clicked() {
-                step = -1;
-            }
-            if ui.add_enabled_ui(at + 1 < n, |ui| icons::button(ui, "chevron-right", 30.0, false, tl!("Next page"))).inner.clicked() {
-                step = 1;
-            }
-        });
+            painter.rect_stroke(paper, CornerRadius::ZERO, Stroke::new(1.0, t.border), egui::StrokeKind::Outside);
+            ui.add_space(8.0);
+            // Previous and next, centred below.
+            ui.horizontal(|ui| {
+                ui.add_space((width - 2.0 * 30.0 - 6.0) / 2.0);
+                if ui.add_enabled_ui(at > 0, |ui| icons::button(ui, "chevron-left", 30.0, false, tl!("Previous page"))).inner.clicked() {
+                    step = -1;
+                }
+                if ui.add_enabled_ui(at + 1 < n, |ui| icons::button(ui, "chevron-right", 30.0, false, tl!("Next page"))).inner.clicked() {
+                    step = 1;
+                }
+            });
+        })
     });
     if close || modal.should_close() {
         app.combine_tab.preview = None;

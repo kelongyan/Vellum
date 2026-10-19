@@ -921,34 +921,38 @@ fn skip_prompt(app: &mut PdfCraftApp, ctx: &egui::Context) {
         left_out.push((f.name.as_str(), f.problem.as_deref().unwrap_or_default()));
     }
     let mut choice: Option<bool> = None;
-    let modal = egui::Modal::new(egui::Id::new("combine-skip")).show(ctx, |ui| {
-        ui.set_width(460.0);
-        ui.horizontal(|ui| {
-            ui.add(icons::image("triangle-alert", 22.0, ERROR));
-            ui.add(egui::Label::new(egui::RichText::new(tl!("Leave out files that can't be read?")).font(theme::semibold(16.0))).wrap());
-        });
-        ui.add_space(6.0);
-        ui.label(egui::RichText::new(tl!("These files can't be read, so they won't be in the combined PDF:")).color(t.text_muted));
-        ui.add_space(6.0);
-        for (name, why) in left_out.iter().take(SKIP_PROMPT_NAMES) {
-            ui.horizontal_wrapped(|ui| {
-                ui.label(egui::RichText::new(format!("• {}", crate::bidi::visual(name))).strong());
-                ui.label(egui::RichText::new(*why).color(t.text_muted));
+    // CUSTOM(kelongyan): this prompt builds its `Modal` directly rather than through
+    // `widgets::show_modal`, so it needs the fork's card rung here too; see `custom/tempo.rs`.
+    let modal = crate::custom::tempo::surface(ctx, crate::custom::tempo::MEDIUM, |ctx| {
+        egui::Modal::new(egui::Id::new("combine-skip")).show(ctx, |ui| {
+            ui.set_width(460.0);
+            ui.horizontal(|ui| {
+                ui.add(icons::image("triangle-alert", 22.0, ERROR));
+                ui.add(egui::Label::new(egui::RichText::new(tl!("Leave out files that can't be read?")).font(theme::semibold(16.0))).wrap());
             });
-        }
-        if left_out.len() > SKIP_PROMPT_NAMES {
-            let more = (left_out.len() - SKIP_PROMPT_NAMES).to_string();
-            ui.label(egui::RichText::new(crate::i18n::fmt(tl!("and {n} more"), &[("n", &more)])).color(t.text_muted));
-        }
-        ui.add_space(14.0);
-        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-            if widgets::pill_button(ui, tl!("Combine the rest"), true).clicked() {
-                choice = Some(true);
+            ui.add_space(6.0);
+            ui.label(egui::RichText::new(tl!("These files can't be read, so they won't be in the combined PDF:")).color(t.text_muted));
+            ui.add_space(6.0);
+            for (name, why) in left_out.iter().take(SKIP_PROMPT_NAMES) {
+                ui.horizontal_wrapped(|ui| {
+                    ui.label(egui::RichText::new(format!("• {}", crate::bidi::visual(name))).strong());
+                    ui.label(egui::RichText::new(*why).color(t.text_muted));
+                });
             }
-            if widgets::pill_button(ui, tl!("Cancel"), false).clicked() {
-                choice = Some(false);
+            if left_out.len() > SKIP_PROMPT_NAMES {
+                let more = (left_out.len() - SKIP_PROMPT_NAMES).to_string();
+                ui.label(egui::RichText::new(crate::i18n::fmt(tl!("and {n} more"), &[("n", &more)])).color(t.text_muted));
             }
-        });
+            ui.add_space(14.0);
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                if widgets::pill_button(ui, tl!("Combine the rest"), true).clicked() {
+                    choice = Some(true);
+                }
+                if widgets::pill_button(ui, tl!("Cancel"), false).clicked() {
+                    choice = Some(false);
+                }
+            });
+        })
     });
     if choice.is_none() && modal.should_close() {
         choice = Some(false);
