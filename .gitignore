@@ -13,3 +13,10 @@ plan/
 /RULE.md
 /Rule/
 /.workbuddy/
+# CUSTOM(kelongyan): scratch output for this checkout: screenshots, design drafts, fetched
+# font copies and tool logs. Not project assets, so `cargo xtask assets` must not list them
+# (AGENTS.md §1.3 checks every file git would track). See Rule/collaboration.md.
+/outputs/
+/work/
+/.playwright-mcp/
+# CUSTOM-END
