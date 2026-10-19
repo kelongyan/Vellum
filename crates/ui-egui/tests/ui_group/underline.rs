@@ -242,3 +242,67 @@ fn the_surfaces_egui_fades_are_on_the_fork_s_clock() {
     h.run_steps(2);
     assert_eq!(h.ctx.global_style().animation_time, 0.0, "a window told to stop easing stays stopped");
 }
+/// A dialog is a card, so it rises over `MEDIUM`, not over the span menus get.
+#[test]
+fn a_dialog_rises_over_its_own_rung() {
+    // A window that does not ease - the headless harness, and a user who turned animation effects
+    // off - borrows nothing: the card is simply there, whole. That is what keeps every other dialog
+    // test, and every published screenshot, as still as it was before the ladder existed.
+    let mut h = harness();
+    assert_eq!(h.ctx.global_style().animation_time, 0.0, "the harness asks for no easing");
+    h.state_mut().dialog = Some(Dialog::Properties(PropsTab::Description));
+    h.run_steps(4);
+    assert_eq!(backdrop_alpha(&h), 100, "a still window shows the dialog at once");
+
+    // A window that does ease fades the same card in, over the card's rung rather than the menus'.
+    let mut h = dialog_harness();
+    h.ctx.all_styles_mut(|style| style.animation_time = 0.4);
+    tick(&mut h, 200.0);
+    h.state_mut().dialog = Some(Dialog::Properties(PropsTab::Description));
+    tick(&mut h, 200.0);
+    let opening = backdrop_alpha(&h);
+    assert!((10..100).contains(&opening), "the pass a dialog appears in shows it on its way in: alpha {opening}");
+    // Sixteen hundredths in: past `SMALL`, the span every menu and tooltip now takes, so a card
+    // that had borrowed the wrong rung would already be whole here.
+    tick(&mut h, 200.16);
+    let past_the_menus = backdrop_alpha(&h);
+    assert!(past_the_menus < 100, "still rising past a menu's 0.14 s: alpha {past_the_menus}");
+    assert!(past_the_menus > opening, "and rising: {opening} then {past_the_menus}");
+    tick(&mut h, 200.3);
+    assert_eq!(backdrop_alpha(&h), 100, "arrived");
+    // The borrow is only for the card's own call: the rest of the window keeps the shared clock.
+    assert_eq!(h.ctx.global_style().animation_time, 0.4, "the clock is handed back");
+}
+
+/// A harness whose frames advance a hundredth of a second, so a fade can be watched at a known age.
+fn dialog_harness() -> Harness<'static, PdfCraftApp> {
+    let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).with_step_dt(0.01).build_eframe(|_cc| {
+        let mut app = PdfCraftApp::new();
+        app.set_option("language", "en").unwrap();
+        app.open_bytes("doc.pdf", None, PDF.to_vec()).expect("opens");
+        app
+    });
+    h.run_steps(4);
+    h
+}
+
+/// How opaque the dialog's backdrop is painted this pass, out of the 100 it settles at. egui fades
+/// a surface by multiplying the opacity of everything inside it, and the backdrop is the one shape
+/// in that surface whose colour says nothing else: the card's fill, its border and its shadow all
+/// vary with the theme.
+fn backdrop_alpha(h: &Harness<'static, PdfCraftApp>) -> u8 {
+    let mut widest: Option<(f32, u8)> = None;
+    for shape in &h.output().shapes {
+        if let egui::Shape::Rect(rect) = &shape.shape {
+            let fill = rect.fill;
+            let black = fill.r() == 0 && fill.g() == 0 && fill.b() == 0;
+            let area = rect.rect.width() * rect.rect.height();
+            if black && fill.a() > 0 && widest.is_none_or(|(seen, _)| area > seen) {
+                widest = Some((area, fill.a()));
+            }
+        }
+    }
+    let (area, alpha) = widest.expect("a dialog paints its backdrop");
+    assert!(area > 100_000.0, "the backdrop covers the window, not a shadow: {area}");
+    alpha
+}

@@ -31,13 +31,18 @@ pub fn modal(ctx: &egui::Context, id: impl std::hash::Hash + std::fmt::Debug) ->
 /// Show [`modal`], outline its controls, and remember the card rect for layout checks.
 pub fn show_modal<R>(ctx: &egui::Context, id: &str, content: impl FnOnce(&mut egui::Ui) -> R) -> egui::ModalResponse<R> {
     let stored = egui::Id::new(id);
-    modal(ctx, id).show(ctx, |ui| {
-        begin_dialog(ui);
-        let inner = content(ui);
-        // The frame's stroke sits outside this content rect; the stored card is the fill.
-        let card = ui.min_rect().expand2(egui::vec2(f32::from(DIALOG_PAD_X), f32::from(DIALOG_PAD_Y)));
-        ui.ctx().data_mut(|d| d.insert_temp(stored.with("card"), card));
-        inner
+    // CUSTOM(kelongyan): a dialog is the card that means it, so it comes in over the fork's
+    // `tempo::MEDIUM` rung rather than the 0.14 s menus get. `surface` borrows that span from egui
+    // for this call only; see `custom/tempo.rs` for why the fade is left to egui.
+    crate::custom::tempo::surface(ctx, crate::custom::tempo::MEDIUM, |ctx| {
+        modal(ctx, id).show(ctx, |ui| {
+            begin_dialog(ui);
+            let inner = content(ui);
+            // The frame's stroke sits outside this content rect; the stored card is the fill.
+            let card = ui.min_rect().expand2(egui::vec2(f32::from(DIALOG_PAD_X), f32::from(DIALOG_PAD_Y)));
+            ui.ctx().data_mut(|d| d.insert_temp(stored.with("card"), card));
+            inner
+        })
     })
 }
 
@@ -419,27 +424,36 @@ pub fn toast(app: &mut PdfCraftApp, ctx: &egui::Context) {
     // Above the progress notice while a job runs.
     let card = if app.progress_notice.is_some() { ctx.data(|d| d.get_temp::<f32>(egui::Id::new(PROGRESS_HEIGHT))).unwrap_or(0.0) } else { 0.0 };
     let lift = if card > 0.0 { 28.0 + card + 10.0 } else { 28.0 };
-    egui::Area::new(egui::Id::new("toast"))
-        .order(egui::Order::Tooltip)
-        .pivot(Align2::CENTER_BOTTOM)
-        .fixed_pos(screen.center_bottom() - vec2(0.0, lift))
-        .show(ctx, |ui| {
-            egui::Frame::NONE
-                .fill(if t.dark() { Color32::from_rgb(0xEC, 0xEC, 0xEF) } else { Color32::from_rgb(0x2A, 0x2A, 0x2F) })
-                .corner_radius(CornerRadius::same(8))
-                .inner_margin(egui::Margin::symmetric(16, 10))
-                .show(ui, |ui| {
-                    // An Area remembers its previous content width. A short notice
-                    // must not force the next validation message into a narrow column.
-                    // Allow natural short labels; wrap longer ones within the viewport,
-                    // including the frame's 32 points and 16-point outside margins.
-                    ui.set_max_width((screen.width() - 64.0).clamp(1.0, 560.0));
-                    ui.add(
-                        egui::Label::new(egui::RichText::new(msg).color(if t.dark() { Color32::from_rgb(0x22, 0x22, 0x26) } else { Color32::WHITE }))
+    // CUSTOM(kelongyan): a notice is a card that came to be seen, so it arrives over MEDIUM like
+    // the dialogs do. The bar below keeps its own 33 ms sweep: that is continuous work, not a
+    // surface coming and going.
+    crate::custom::tempo::surface(ctx, crate::custom::tempo::MEDIUM, |ctx| {
+        egui::Area::new(egui::Id::new("toast"))
+            .order(egui::Order::Tooltip)
+            .pivot(Align2::CENTER_BOTTOM)
+            .fixed_pos(screen.center_bottom() - vec2(0.0, lift))
+            .show(ctx, |ui| {
+                egui::Frame::NONE
+                    .fill(if t.dark() { Color32::from_rgb(0xEC, 0xEC, 0xEF) } else { Color32::from_rgb(0x2A, 0x2A, 0x2F) })
+                    .corner_radius(CornerRadius::same(8))
+                    .inner_margin(egui::Margin::symmetric(16, 10))
+                    .show(ui, |ui| {
+                        // An Area remembers its previous content width. A short notice
+                        // must not force the next validation message into a narrow column.
+                        // Allow natural short labels; wrap longer ones within the viewport,
+                        // including the frame's 32 points and 16-point outside margins.
+                        ui.set_max_width((screen.width() - 64.0).clamp(1.0, 560.0));
+                        ui.add(
+                            egui::Label::new(egui::RichText::new(msg).color(if t.dark() {
+                                Color32::from_rgb(0x22, 0x22, 0x26)
+                            } else {
+                                Color32::WHITE
+                            }))
                             .wrap(),
-                    );
-                });
-        });
+                        );
+                    });
+            });
+    });
     ctx.request_repaint_after(std::time::Duration::from_millis(100));
 }
 

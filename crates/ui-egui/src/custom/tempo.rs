@@ -71,7 +71,10 @@ pub const SLIDE: Spec = Spec { enter: 0.16, exit: 0.16, curve: emath::easing::cu
 
 /// Cards that mean it: dialogs, the command palette, notices. `circular_out` decelerates hardest
 /// of the ladder, which is what a surface that grew into place needs.
-#[cfg_attr(not(test), expect(dead_code, reason = "P2 raises its surfaces against this rung"))]
+///
+/// [`surface`] hands this rung to egui's own fade, which is what opens those cards: it measures its
+/// fade with `Style::animation_time`, so a card gets its span without the fork having to work out
+/// when the card appeared.
 pub const MEDIUM: Spec = Spec { enter: 0.20, exit: 0.14, curve: emath::easing::circular_out };
 
 /// Workspaces: a panel opening, the outline taking its room.
@@ -234,6 +237,44 @@ pub fn animated(ctx: &Context) -> bool {
 #[must_use = "the travel is the value; ask for it every pass"]
 pub fn track(ctx: &Context, id: Id, target: f32, spec: Spec) -> f32 {
     read(ctx, id, target, spec, Fresh::At)
+}
+
+/// Draw a card that comes and goes - a dialog, the command palette, a notice - over `spec`.
+///
+/// egui fades the `Area` of every such card itself, and measures that fade with
+/// `Style::animation_time`. This aims that fade at a rung for the one call that opens the card, so
+/// the card gets [`MEDIUM`]'s span while menus and tooltips keep [`SMALL`]'s.
+///
+/// Deliberately not a hand-written travel: a card stops being drawn the frame it closes, so the
+/// fork never gets to see the closing and could not ease it out. Deciding "this card is appearing"
+/// by watching for a gap in the frames would replay the fade whenever a settled card happened to
+/// be redrawn after a pause. egui already knows, from the area's own visibility, and gets it right.
+///
+/// The value is restored on the way out, so nothing else in the pass sees a borrowed clock. With
+/// animation effects off there is no fade to aim, and `draw` runs on the style it was given.
+pub fn surface<R>(ctx: &Context, spec: Spec, draw: impl FnOnce(&Context) -> R) -> R {
+    if !animated(ctx) || !spec.enter.is_finite() || spec.enter <= 0.0 {
+        return draw(ctx);
+    }
+    let previous = ctx.global_style().animation_time;
+    ctx.global_style_mut(|style| style.animation_time = spec.enter);
+    // Handed back when the borrow ends however it ends, including a card whose draw panicked on
+    // its way to the last-resort guard: a clock left at a card's span would fade every menu in the
+    // window at that span for the rest of the session.
+    let _borrowed = Borrowed { ctx: ctx.clone(), previous };
+    draw(ctx)
+}
+
+/// [`surface`]'s clock, on the way back.
+struct Borrowed {
+    ctx: Context,
+    previous: f32,
+}
+
+impl Drop for Borrowed {
+    fn drop(&mut self) {
+        self.ctx.global_style_mut(|style| style.animation_time = self.previous);
+    }
 }
 
 /// [`track`] between two states: 1.0 while `on`, 0.0 when not. Unseen before means not yet shown,
@@ -512,6 +553,38 @@ mod tests {
         ctx.global_style_mut(|style| style.animation_time = 0.0);
         crate::theme::apply(&ctx, crate::theme::ThemeKind::Light);
         assert_eq!(ctx.global_style().animation_time, 0.0, "nothing travels, and nothing is restored");
+    }
+
+    #[test]
+    fn a_surface_borrows_the_clock_its_fade_reads() {
+        // egui measures an area's fade with `Style::animation_time`, so aiming a card at a rung
+        // means lending that span for the one call that draws the card - and handing the clock
+        // back, because everything else in the pass still reads the shared one.
+        let ctx = Context::default();
+        ctx.global_style_mut(|style| style.animation_time = SMALL.enter);
+        let during = surface(&ctx, MEDIUM, |ctx| ctx.global_style().animation_time);
+        assert_eq!(during, MEDIUM.enter, "the card is drawn on its own span");
+        assert_eq!(ctx.global_style().animation_time, SMALL.enter, "and the clock goes back");
+        // A card that fails to draw still gives the clock back.
+        let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            surface(&ctx, LARGE, |_| panic!("the card failed to draw"));
+        }));
+        assert!(panicked.is_err(), "the panic travels on");
+        assert_eq!(ctx.global_style().animation_time, SMALL.enter, "and the clock still goes back");
+    }
+
+    #[test]
+    fn a_window_that_does_not_ease_borrows_nothing() {
+        let ctx = Context::default();
+        ctx.global_style_mut(|style| style.animation_time = 0.0);
+        let during = surface(&ctx, MEDIUM, |ctx| ctx.global_style().animation_time);
+        assert_eq!(during, 0.0, "no span is lent when the host asked for no easing");
+        // A rung with no time in it would otherwise stop egui's fade by setting 0.0 on a window
+        // that does ease.
+        ctx.global_style_mut(|style| style.animation_time = SMALL.enter);
+        let none = Spec { enter: 0.0, exit: 0.0, curve: emath::easing::linear };
+        let during = surface(&ctx, none, |ctx| ctx.global_style().animation_time);
+        assert_eq!(during, SMALL.enter, "a rung with no span leaves the clock alone");
     }
 
     #[test]
