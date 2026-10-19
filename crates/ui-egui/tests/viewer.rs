@@ -1753,6 +1753,12 @@ fn the_picture_menu_opens_link_properties_and_recognize_text_for_the_picture() {
 #[test]
 fn every_item_of_the_picture_menu_can_be_clicked_outside_the_picture() {
     let (_, mut h) = picture_menu();
+    // CUSTOM(kelongyan): this fork opens a document with All tools collapsed, which leaves the
+    // page wider and its bottom lower than where this upstream layout assertion expects the
+    // menu; the pane goes back first. The other picture-menu tests need no such thing because
+    // they click by label rather than measure where the menu sits.
+    h.state_mut().set_option("left", "open").unwrap();
+    h.run_steps(3);
     let s = h.state();
     let page = s.views[s.active.unwrap()].page_screen_rect(0).expect("on screen");
     let delete = h.get_by_label("Delete").rect();

@@ -2162,6 +2162,10 @@ fn restricted_documents_show_a_notice_and_block_page_changes() {
         app
     });
     h.run_steps(4);
+    // CUSTOM(kelongyan): this fork opens a document with All tools collapsed; the Organize grid
+    // this test drives lives in that pane, so it goes back in the layout first.
+    h.state_mut().set_option("left", "open").unwrap();
+    h.run_steps(3);
     h.get_by_label_contains("This document is secured");
     h.get_by_label("Page 1").click();
     h.run_steps(1);

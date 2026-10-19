@@ -1724,6 +1724,11 @@ fn navigation_history_for_os(os: egui::os::OperatingSystem) {
 #[test]
 fn routine_continuous_scrolling_does_not_add_navigation_history() {
     let (mut h, c) = harness_pages(20);
+    // CUSTOM(kelongyan): this fork opens a document with All tools collapsed, which leaves the
+    // canvas narrower than the wheel travel this test assumes; the pane goes back first. Same
+    // seam as the docking tests below.
+    h.state_mut().set_option("left", "open").unwrap();
+    h.run_steps(3);
     ok(&mut h, &c, "ui.set", json!({"key": "animation_effects", "value": "off"}));
     h.hover_at(egui::pos2(700.0, 450.0));
     h.event(egui::Event::MouseWheel {

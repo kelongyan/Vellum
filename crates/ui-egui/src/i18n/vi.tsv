@@ -612,7 +612,6 @@ theme	Appearance	Giao diện
 	From {file}	Từ {file}
 	From:	Từ:
 	Front side only	Chỉ mặt trước
-	Get help, share feedback and follow development on Discord.	Nhận trợ giúp, chia sẻ phản hồi và theo dõi quá trình phát triển trên Discord.
 	Go to a page view	Đi tới một chế độ xem trang
 	Go to page {p}	Đi tới trang {p}
 	Go to the page	Đi tới trang
@@ -664,8 +663,6 @@ theme	Appearance	Giao diện
 	JavaScript Console	Bảng điều khiển JavaScript
 	JavaScript is turned off (Preferences ▸ JavaScript).	JavaScript đã bị tắt (Tùy chọn > JavaScript).
 	JavaScript, e.g. getField("total").value	JavaScript, ví dụ getField("total").value
-	Join our Discord	Tham gia Discord của chúng tôi
-	Join the ArtCraft community	Tham gia cộng đồng ArtCraft
 	Justify	Căn đều
 	Keep source fonts	Giữ phông chữ nguồn
 	Keep tool selected	Giữ công cụ được chọn
@@ -1470,7 +1467,6 @@ theme	Appearance	Giao diện
 	Insert text	Chèn văn bản
 	JavaScript	JavaScript
 	JavaScript console…	Bảng điều khiển JavaScript…
-	Join the ArtCraft Discord	Tham gia Discord của ArtCraft
 	Light gray	Xám nhạt
 	Line	Đường thẳng
 	Link	Liên kết
@@ -2687,3 +2683,12 @@ key	Space	Space
 # Historical snapshot notice bar (View signed version / View revision).
 	You are viewing the signed version of “{from}” (revision {rev}). It is a snapshot: changes here won't affect the original.	Bạn đang xem phiên bản đã ký của “{from}” (bản sửa đổi {rev}). Đây là ảnh nhanh: các thay đổi ở đây không được áp dụng đến bản gốc.
 	You are viewing revision {rev} of “{from}”. It is a snapshot: changes here won't affect the original.	Bạn đang xem bản sửa đổi {rev} của “{from}”. Đây là ảnh nhanh: các thay đổi ở đây không được áp dụng đến bản gốc.
+	Documents	Tài liệu
+	New folder	Thư mục mới
+	Move to folder…	Chuyển vào thư mục…
+	Locate file…	Tìm tịp…
+	Remove from Documents	Xóa khỏi Tài liệu
+	The file was moved or deleted	Tịp đã bị di chuyển hoặc xóa
+	Drop a PDF anywhere to open it, or create a folder to organize your documents.	Thả PDF vào bất kỳ đâu để mở, hoặc tạo thư mục để sắp xếp tài liệu của bạn.
+	Star {name}	Gắn sao {name}
+	Unstar {name}	Bỏ gắn sao {name}
