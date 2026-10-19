@@ -476,3 +476,56 @@ fn ago_of(unix: u64) -> String {
     }
     crate::combine_ui::ago(UNIX_EPOCH + Duration::from_secs(unix))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A card's two lines stay one line each, and keep their gap, whatever language Home is in.
+    ///
+    /// Upstream checked this against its own tool cards; this fork draws Home, so the check belongs
+    /// to the cards it actually shows. German is the language that tests it: its strings are long
+    /// enough to want a second row, and a card whose lines collided would fail here rather than in
+    /// a screenshot nobody took.
+    #[test]
+    fn translated_card_lines_stay_on_one_row_and_keep_their_gap() {
+        const NAME: &str = "Jahreshauptversammlung-Und-Betriebspr\u{fc}fung-2026.pdf";
+        for code in ["de", "en"] {
+            let lang = crate::i18n::Lang::from_code(code).expect("a supported language");
+            crate::i18n::set_current(lang);
+            let ctx = egui::Context::default();
+            ctx.set_fonts(theme::font_definitions());
+            let mut app = PdfCraftApp::new();
+            // A name long enough to want to wrap, and a count and date long enough to do it too.
+            app.library.remember("/nowhere/card.pdf", NAME, 12345, 4096, 1_700_000_000);
+            let output = ctx.run_ui(
+                egui::RawInput { screen_rect: Some(Rect::from_min_size(egui::Pos2::ZERO, vec2(1400.0, 900.0))), ..Default::default() },
+                |ui| show(&mut app, ui),
+            );
+            crate::i18n::set_current(crate::i18n::Lang::EN);
+
+            // The card's name, which no catalogue translates, anchors the pair: the line under it is
+            // the count and date the card shows in place of a status.
+            let texts: Vec<(f32, String, usize, f32)> = output
+                .shapes
+                .iter()
+                .filter_map(|shape| match &shape.shape {
+                    egui::Shape::Text(text) => Some((text.pos.y, text.galley.job.text.clone(), text.galley.rows.len(), text.galley.size().y)),
+                    _ => None,
+                })
+                .collect();
+            let title = texts.iter().find(|(_, text, _, _)| text.contains("Jahreshauptversammlung")).expect("the card shows its name");
+            let meta = texts
+                .iter()
+                .find(|(y, text, _, _)| *y > title.0 && *y - title.0 < 40.0 && text.contains('\u{00B7}'))
+                .expect("the card shows its count and date under the name");
+            for &(y, _, rows, _) in [title, meta] {
+                assert_eq!(rows, 1, "{code}: the card line at y={y} wrapped to {rows} rows");
+            }
+            // Both are anchored on their centre, so each takes half its height either side.
+            let gap = (meta.0 - meta.3 / 2.0) - (title.0 + title.3 / 2.0);
+            assert!(gap >= 4.0, "{code}: the card's lines crowd each other: gap {gap} between {:?} and {:?}", title.1, meta.1);
+            output.drop_without_applying_deltas();
+        }
+    }
+}
