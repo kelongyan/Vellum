@@ -27,6 +27,12 @@ fn harness() -> Harness<'static, PdfCraftApp> {
     h
 }
 
+/// Every test here renders to pixels, which takes a GPU device, and one device per test thread in
+/// one process is one device too many: the binary dies at start-up with STATUS_ACCESS_VIOLATION
+/// whenever another harness is live in the same batch. `tests/perf.rs` does the same for the same
+/// reason.
+static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// Run a frame whose clock reads `at`. The harness holds its time still unless a test says
 /// otherwise, which is also how `control.rs` drives frame-rate-dependent motion.
 fn tick(h: &mut Harness<'static, PdfCraftApp>, at: f64) {
@@ -57,6 +63,7 @@ fn ink(h: &mut Harness<'static, PdfCraftApp>, rect: Rect) -> usize {
 /// A window that does not ease sees an opened panel exactly as it did before the ladder existed.
 #[test]
 fn a_still_window_shows_an_opened_panel_at_once() {
+    let _turn = SERIAL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut h = harness();
     assert_eq!(h.ctx.global_style().animation_time, 0.0, "the harness asks for no easing");
     let row = row_rect(&h, "Export a PDF");
@@ -74,6 +81,7 @@ fn a_still_window_shows_an_opened_panel_at_once() {
 /// Opening a panel brings its contents up over the workspace rung, and they arrive.
 #[test]
 fn a_panel_rises_when_it_opens() {
+    let _turn = SERIAL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut h = harness();
     // A clock longer than any rung on the ladder, so no pass here can be mistaken for an arrival.
     h.ctx.all_styles_mut(|style| style.animation_time = 0.4);
@@ -106,6 +114,7 @@ fn a_panel_rises_when_it_opens() {
 /// drawn at all, so a travel owned by the drawing would forget the closing and open flat.
 #[test]
 fn a_panel_rises_again_the_second_time() {
+    let _turn = SERIAL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut h = harness();
     h.ctx.all_styles_mut(|style| style.animation_time = 0.4);
     tick(&mut h, 400.0);
