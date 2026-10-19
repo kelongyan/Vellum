@@ -78,7 +78,6 @@ pub const SLIDE: Spec = Spec { enter: 0.16, exit: 0.16, curve: emath::easing::cu
 pub const MEDIUM: Spec = Spec { enter: 0.20, exit: 0.14, curve: emath::easing::circular_out };
 
 /// Workspaces: a panel opening, the outline taking its room.
-#[cfg_attr(not(test), expect(dead_code, reason = "P3 opens its panels against this rung"))]
 pub const LARGE: Spec = Spec { enter: 0.26, exit: 0.18, curve: emath::easing::cubic_out };
 
 /// Most travels kept, and how many are dropped when the cap is reached. A window this size reads a

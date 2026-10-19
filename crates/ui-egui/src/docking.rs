@@ -396,6 +396,23 @@ pub fn show(app: &mut crate::PdfCraftApp, ui: &mut egui::Ui) {
         // Availability is a render projection: the saved group, selection and width survive Home.
         let _ = rendered.apply(Action::Close { panel: Panel::Inspector });
     }
+    // CUSTOM(kelongyan): a panel rises over the fork's `tempo::LARGE` rung. The width cannot
+    // travel - the shared renderer floors a pane at its own minimum and the tab strip's width, and
+    // closing a panel removes it from the layout rather than shrinking it to nothing - so the
+    // panel's contents come in, which is what the eye follows when a workspace changes.
+    //
+    // Asked here, once a frame for every panel, rather than inside the panel's own draw: a panel
+    // that is closed is not drawn at all, so a travel owned by the drawing would forget it had ever
+    // been closed and open the second time without rising. This is the one place that sees both
+    // states. `motion::animated` still decides whether anything eases at all.
+    let rises: Vec<(Panel, f32)> = [Panel::Tools, Panel::Inspector]
+        .iter()
+        .map(|panel| {
+            let open = rendered.contains(panel);
+            let id = egui::Id::new("panel-rise").with(panel.id());
+            (*panel, crate::custom::tempo::switch(ui.ctx(), id, open, crate::custom::tempo::LARGE))
+        })
+        .collect();
     let output = DockArea::new(egui::Id::new("pdfcraft-docking")).show_with_limits(
         ui,
         &rendered,
@@ -412,9 +429,13 @@ pub fn show(app: &mut crate::PdfCraftApp, ui: &mut egui::Ui) {
                     Some(index) => crate::canvas::document_area(app, index, ui),
                 }
             }
-            Panel::Tools => crate::panels::left_panel(app, ui),
+            Panel::Tools => {
+                rise(ui, &rises, Panel::Tools);
+                crate::panels::left_panel(app, ui);
+            }
             Panel::Inspector => {
                 ui.data_mut(|data| data.insert_temp(egui::Id::new("pdfcraft-inspector-body"), ui.max_rect()));
+                rise(ui, &rises, Panel::Inspector);
                 crate::panels::right_panel(app, ui);
             }
         },
@@ -445,6 +466,19 @@ fn panel_limits(panel: &Panel) -> PanelLimits {
         Panel::Inspector => (egui::vec2(260.0, 120.0), 520.0),
     };
     PanelLimits { min, max: egui::vec2(max_width, 1_000_000.0) }
+}
+
+/// Fade a panel's contents by `rise`, the fork's `LARGE` travel for it: nothing at 0.0, whole at 1.0.
+///
+/// A child `Ui` inherits its painter's opacity, so everything the panel draws from here down (its
+/// title, its rows, its scrollbars) comes in as one surface. The shared renderer draws the tab strip
+/// and its own close button before handing us this `Ui`, so those stay put: what rises is the room's
+/// contents, not the frame around them.
+fn rise(ui: &mut egui::Ui, rises: &[(Panel, f32)], panel: Panel) {
+    let Some((_, rise)) = rises.iter().find(|(id, _)| *id == panel) else { return };
+    if *rise < 1.0 {
+        ui.multiply_opacity(*rise);
+    }
 }
 
 #[cfg(test)]
