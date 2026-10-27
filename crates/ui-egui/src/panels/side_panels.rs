@@ -394,7 +394,7 @@ pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     // (the shared renderer floors a pane at its own minimum), so the contents come in instead.
     let open = open_panes(app);
     let rise = [Pane::Tools, Pane::Side].map(|pane| {
-        let id = egui::Id::new(("pane-rise", pane));
+        let id = egui::Id::unique(("pane-rise", pane));
         crate::custom::tempo::switch(ui.ctx(), id, open.contains(&pane), crate::custom::tempo::LARGE)
     });
     // The expanded All tools view covers the panes.

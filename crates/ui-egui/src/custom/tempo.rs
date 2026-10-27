@@ -214,7 +214,7 @@ impl Tracks {
 }
 
 fn tracks_id() -> Id {
-    Id::new("pdfcraft-custom-tracks")
+    Id::unique("pdfcraft-custom-tracks")
 }
 
 /// Whether the window animates this pass. The fork's surfaces ask this, as upstream's do
@@ -341,7 +341,7 @@ mod tests {
 
     /// Past egui's own first passes, which ask for a frame for reasons of their own.
     fn warm_up(ctx: &Context) {
-        let id = Id::new("warm-up");
+        let id = Id::unique("warm-up");
         pass(ctx, 0.0, |ctx| {
             // Warming egui's own first passes, not reading the value.
             let _ = switch(ctx, id, false, MICRO);
@@ -355,10 +355,10 @@ mod tests {
         // egui always draws one more pass after the first, so rest is two passes away.
         let first = pass(&ctx, 0.0, |ctx| {
             // The first pass is here to warm egui, not to read the value.
-            let _ = switch(ctx, Id::new("idle"), false, MICRO);
+            let _ = switch(ctx, Id::unique("idle"), false, MICRO);
         });
         assert_eq!(first, Duration::ZERO, "the bootstrap pass");
-        let (value, delay) = settled(&ctx, 0.02, Id::new("idle"), false, MICRO);
+        let (value, delay) = settled(&ctx, 0.02, Id::unique("idle"), false, MICRO);
         assert_eq!((value, delay), (0.0, Duration::MAX), "and nothing is wanted after that");
     }
 
@@ -366,7 +366,7 @@ mod tests {
     fn a_surface_arrives_over_its_enter_and_leaves_over_its_exit() {
         let ctx = Context::default();
         warm_up(&ctx);
-        let id = Id::new("wash");
+        let id = Id::unique("wash");
         // The pass it appears: none of it is there yet, and the next pass is wanted.
         let (first, delay) = switch_at(&ctx, 2.0, id, true, MICRO);
         assert_eq!(first, 0.0, "it starts out unseen");
@@ -397,7 +397,7 @@ mod tests {
         for steps in [4_u32, 20, 200] {
             let ctx = Context::default();
             warm_up(&ctx);
-            let id = Id::new("rate");
+            let id = Id::unique("rate");
             switch_at(&ctx, 1.0, id, true, SMALL);
             let mut answer = f32::NAN;
             for step in 1..=steps {
@@ -419,7 +419,7 @@ mod tests {
     fn a_new_target_continues_from_where_the_value_is() {
         let ctx = Context::default();
         warm_up(&ctx);
-        let id = Id::new("interrupt");
+        let id = Id::unique("interrupt");
         assert_eq!(switch_at(&ctx, 1.0, id, true, SMALL).0, 0.0, "the pass it appears");
         // Turn around a third of the way in: no jump, and it leaves from where it turned.
         let turned = 1.0 + f64::from(SMALL.enter / 3.0);
@@ -437,7 +437,7 @@ mod tests {
     fn a_position_is_already_there_when_nobody_looked_at_it() {
         let ctx = Context::default();
         warm_up(&ctx);
-        let id = Id::new("indicator");
+        let id = Id::unique("indicator");
         // `track` is for values the widget always had: the first read must not slide one in from 0.
         assert_eq!(track_settled(&ctx, 2.0, id, 120.0, SMALL), 120.0);
         // A change travels: the pass that first sees it holds the old value, so nothing jumps.
@@ -456,7 +456,7 @@ mod tests {
     fn a_target_that_barely_moves_does_not_restart_the_travel() {
         let ctx = Context::default();
         warm_up(&ctx);
-        let id = Id::new("jitter");
+        let id = Id::unique("jitter");
         assert_eq!(track_settled(&ctx, 2.0, id, 120.0, SMALL), 120.0);
         // A layout that rounds its last bits differently is not a new target: the value holds and
         // the window is not asked for another frame.
@@ -491,7 +491,7 @@ mod tests {
         let ctx = Context::default();
         warm_up(&ctx);
         ctx.global_style_mut(|style| style.animation_time = 0.0);
-        let id = Id::new("reduced");
+        let id = Id::unique("reduced");
         // Even the first sight: nothing travels, and nothing asks for a following frame.
         let (on, delay) = settled(&ctx, 0.2, id, true, MICRO);
         assert_eq!(on, 1.0, "the wash is simply there");
@@ -511,7 +511,7 @@ mod tests {
     fn numbers_that_are_not_numbers_move_nothing() {
         let ctx = Context::default();
         warm_up(&ctx);
-        let id = Id::new("bad");
+        let id = Id::unique("bad");
         assert_eq!(track_at(&ctx, 1.0, id, 0.5, MICRO), 0.5, "settled as a baseline");
         for bad in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
             assert_eq!(read_at(&ctx, id, bad, MICRO, Fresh::At, 1.0), 0.0, "{bad}");
@@ -529,13 +529,13 @@ mod tests {
         }
         // A spec with no time is a move, not an animation.
         let none = Spec { enter: 0.0, exit: 0.0, curve: emath::easing::linear };
-        assert_eq!(read_at(&ctx, Id::new("no-time"), 0.7, none, Fresh::At, 1.0), 0.7);
-        assert_eq!(read_at(&ctx, Id::new("no-time"), 0.7, none, Fresh::From(0.0), 1.0), 0.7, "nothing to travel");
+        assert_eq!(read_at(&ctx, Id::unique("no-time"), 0.7, none, Fresh::At, 1.0), 0.7);
+        assert_eq!(read_at(&ctx, Id::unique("no-time"), 0.7, none, Fresh::From(0.0), 1.0), 0.7, "nothing to travel");
         // A curve that doesn't answer with a number loses its travel and arrives: a surface the
         // window can't animate is shown, never left out.
         let broken = Spec { enter: 0.1, exit: 0.1, curve: |_| f32::NAN };
-        assert_eq!(read_at(&ctx, Id::new("broken"), 1.0, broken, Fresh::From(0.0), 1.0), 1.0);
-        assert_eq!(read_at(&ctx, Id::new("broken"), 0.0, broken, Fresh::From(0.0), 1.05), 0.0);
+        assert_eq!(read_at(&ctx, Id::unique("broken"), 1.0, broken, Fresh::From(0.0), 1.0), 1.0);
+        assert_eq!(read_at(&ctx, Id::unique("broken"), 0.0, broken, Fresh::From(0.0), 1.05), 0.0);
     }
 
     #[test]
@@ -638,7 +638,7 @@ mod tests {
             pass(&ctx, time, |ctx| {
                 for i in 0..1000_u64 {
                     // Churning the map, not reading any of the values.
-                    let _ = switch(ctx, Id::new(("many", batch, i)), true, MICRO);
+                    let _ = switch(ctx, Id::unique(("many", batch, i)), true, MICRO);
                 }
             });
         }
@@ -647,8 +647,8 @@ mod tests {
         assert!(kept >= KEEP_AFTER_PRUNE, "and the headroom was not thrown away: {kept}");
         // An id the window read in the last pass is still remembered and reads its target; one long
         // forgotten starts again from unseen: a lost animation, never a wrong value.
-        assert_eq!(switch_at(&ctx, 2.0, Id::new(("many", 9, 0)), true, MICRO).0, 1.0, "still remembered");
-        assert_eq!(switch_at(&ctx, 2.0, Id::new(("many", 0, 0)), true, MICRO).0, 0.0, "forgotten");
+        assert_eq!(switch_at(&ctx, 2.0, Id::unique(("many", 9, 0)), true, MICRO).0, 1.0, "still remembered");
+        assert_eq!(switch_at(&ctx, 2.0, Id::unique(("many", 0, 0)), true, MICRO).0, 0.0, "forgotten");
         // Reading them back grew the map by the one that was forgotten, and no more: forgetting is
         // bounded work, so a long session with a churning list stays around the cap.
         let after = ctx.data(|d| d.get_temp::<Tracks>(tracks_id()).map_or(0, |t| t.len()));

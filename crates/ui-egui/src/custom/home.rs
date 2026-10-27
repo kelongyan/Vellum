@@ -51,12 +51,12 @@ struct CardActions {
 
 pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
-    let mut open_folder = ui.data_mut(|d| d.get_temp::<Option<u64>>(egui::Id::new(OPEN_FOLDER_ID)).flatten());
+    let mut open_folder = ui.data_mut(|d| d.get_temp::<Option<u64>>(egui::Id::unique(OPEN_FOLDER_ID)).flatten());
     if open_folder.is_some_and(|id| app.library.folder(id).is_none()) {
         open_folder = None;
-        ui.data_mut(|d| d.insert_temp(egui::Id::new(OPEN_FOLDER_ID), open_folder));
+        ui.data_mut(|d| d.insert_temp(egui::Id::unique(OPEN_FOLDER_ID), open_folder));
     }
-    let dialog = ui.data_mut(|d| d.get_temp::<Option<HomeDialog>>(egui::Id::new(DIALOG_ID))).flatten();
+    let dialog = ui.data_mut(|d| d.get_temp::<Option<HomeDialog>>(egui::Id::unique(DIALOG_ID))).flatten();
 
     let mut actions = CardActions::default();
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
@@ -78,7 +78,7 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     if let Some(done) = run_dialog(ui.ctx(), &t, dialog.as_ref()) {
         match done {
             DialogDone::Cancel => {
-                ui.data_mut(|d| d.insert_temp(egui::Id::new(DIALOG_ID), None::<HomeDialog>));
+                ui.data_mut(|d| d.insert_temp(egui::Id::unique(DIALOG_ID), None::<HomeDialog>));
             }
             DialogDone::Confirm(text) => {
                 match dialog {
@@ -88,7 +88,7 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     Some(HomeDialog::RenameFolder(id)) => app.library.rename_folder(id, &text),
                     None => {}
                 }
-                ui.data_mut(|d| d.insert_temp(egui::Id::new(DIALOG_ID), None::<HomeDialog>));
+                ui.data_mut(|d| d.insert_temp(egui::Id::unique(DIALOG_ID), None::<HomeDialog>));
             }
         }
     }
@@ -99,8 +99,8 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
             HomeDialog::RenameFolder(id) => app.library.folder(*id).map(|f| f.name.clone()).unwrap_or_default(),
         };
         ui.data_mut(|d| {
-            d.insert_temp(egui::Id::new(DIALOG_TEXT_ID), text);
-            d.insert_temp(egui::Id::new(DIALOG_ID), Some(dlg));
+            d.insert_temp(egui::Id::unique(DIALOG_TEXT_ID), text);
+            d.insert_temp(egui::Id::unique(DIALOG_ID), Some(dlg));
         });
     }
     apply_actions(app, ui, actions);
@@ -108,7 +108,7 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
 
 fn apply_actions(app: &mut PdfCraftApp, ui: &mut egui::Ui, actions: CardActions) {
     if let Some(target) = actions.open_folder {
-        ui.data_mut(|d| d.insert_temp(egui::Id::new(OPEN_FOLDER_ID), target));
+        ui.data_mut(|d| d.insert_temp(egui::Id::unique(OPEN_FOLDER_ID), target));
     }
     if let Some((id, starred)) = actions.star {
         app.library.set_folder_starred(id, starred);
@@ -120,8 +120,8 @@ fn apply_actions(app: &mut PdfCraftApp, ui: &mut egui::Ui, actions: CardActions)
         // The text field is seeded when the dialog opens.
         let text = app.library.folder(id).map(|f| f.name.clone()).unwrap_or_default();
         ui.data_mut(|d| {
-            d.insert_temp(egui::Id::new(DIALOG_TEXT_ID), text);
-            d.insert_temp(egui::Id::new(DIALOG_ID), Some(HomeDialog::RenameFolder(id)));
+            d.insert_temp(egui::Id::unique(DIALOG_TEXT_ID), text);
+            d.insert_temp(egui::Id::unique(DIALOG_ID), Some(HomeDialog::RenameFolder(id)));
         });
     }
     if let Some((path, folder)) = actions.move_doc {
@@ -167,7 +167,7 @@ fn run_dialog(ctx: &egui::Context, t: &Tokens, dialog: Option<&HomeDialog>) -> O
         HomeDialog::NewFolder => tl!("New folder"),
         HomeDialog::RenameFolder(_) => tl!("Rename"),
     };
-    let text_id = egui::Id::new(DIALOG_TEXT_ID);
+    let text_id = egui::Id::unique(DIALOG_TEXT_ID);
     let mut done = None;
     let modal = widgets::show_modal(ctx, id, |ui| {
         ui.set_max_width(280.0);
@@ -310,7 +310,7 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     );
     // The star sits on the folder's top right; it appears when starred or hovered.
     let star_rect = Rect::from_center_size(egui::pos2(left + 98.0, top + 20.0), vec2(26.0, 26.0));
-    let star = ui.interact(star_rect, ui.id().with(("lib-star", folder.id)), Sense::click());
+    let star = ui.interact(star_rect, ui.scope_id().with(("lib-star", folder.id)), Sense::click());
     let star_label = if folder.starred {
         crate::i18n::fmt(tl!("Unstar {name}"), &[("name", &folder.name)])
     } else {

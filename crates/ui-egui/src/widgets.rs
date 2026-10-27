@@ -133,7 +133,7 @@ pub fn mode_tab(ui: &mut egui::Ui, label: &str, active: bool) -> Response {
     ui.painter().text(body.center(), Align2::CENTER_CENTER, label, font, if active { t.text } else { t.text_muted });
     if active {
         // CUSTOM(kelongyan): the underline travels along its row instead of appearing at its new
-        // end in one frame. The id is the row's: `ui.id()` is the horizontal the tabs sit in, so one
+        // end in one frame. The id is the row's: `ui.scope_id()` is the horizontal the tabs sit in, so one
         // strip shares the two travels and a dialog's tab row never joins the mode bar's. Only the
         // left edge and the width travel; the line is painted on the active tab's own bottom edge,
         // so a row a growing dialog moved sideways keeps a line that follows it instead of one that
@@ -141,7 +141,7 @@ pub fn mode_tab(ui: &mut egui::Ui, label: &str, active: bool) -> Response {
         // [`tempo::track`] answers with that same rect in the pass it is asked, so tests and
         // screenshots see what they saw before.
         use crate::custom::tempo;
-        let row = ui.id().with("mode-tab-underline");
+        let row = ui.scope_id().with("mode-tab-underline");
         let bottom = rect.left_bottom();
         let (rest_x, rest_w) = (bottom.x + 10.0, (rect.width() - 20.0).max(0.0));
         // egui measures a surface it has not laid out yet in a sizing pass, and the rects it hands
