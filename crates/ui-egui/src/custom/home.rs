@@ -287,7 +287,7 @@ enum GridItem<'a> {
 
 fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &LibraryFolder, actions: &mut CardActions) {
     let (rect, resp) = ui.allocate_exact_size(vec2(CARD_W, FOLDER_CARD_H), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &folder.name));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &folder.name));
     let press = theme::Press::track(ui, &resp);
     press.wash(ui, rect, 10, false);
     // The folder floats up while hovered.
@@ -316,7 +316,7 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     } else {
         crate::i18n::fmt(tl!("Star {name}"), &[("name", &folder.name)])
     };
-    star.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &star_label));
+    star.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &star_label));
     if folder.starred || star.hovered() {
         let tint = if folder.starred { STAR } else { t.icon };
         icons::paint(ui, star_rect.shrink(4.0), "star", 18.0, tint);
@@ -350,7 +350,7 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
 
 fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, actions: &mut CardActions) {
     let (rect, resp) = ui.allocate_exact_size(vec2(CARD_W, DOC_CARD_H), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, &doc.name));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &doc.name));
     let press = theme::Press::track(ui, &resp);
     press.wash(ui, rect, 10, false);
     let lift = press.hover * -2.0;
@@ -437,7 +437,7 @@ fn pill(ui: &mut egui::Ui, t: &Tokens, icon: &str, label: &str, primary: bool) -
     let (rest, text_color) = if primary { (t.accent, Color32::WHITE) } else { (t.accent_soft, t.accent_text) };
     let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_owned(), font.clone(), text_color).size().x);
     let (rect, resp) = ui.allocate_exact_size(vec2(w + 48.0, 34.0), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, label));
     let press = theme::Press::track(ui, &resp);
     let fill = if primary {
         press.fill(rest, t.accent_text, t.accent.lerp_to_gamma(Color32::BLACK, 0.22))
