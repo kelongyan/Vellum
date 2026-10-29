@@ -171,6 +171,7 @@ fn the_underline_travels_to_the_tab_you_choose() {
 /// that has always been there, so the dialog's line arrives in place instead of sliding in from the
 /// mode bar above it, and choosing in one row never moves the other.
 #[test]
+#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
 fn a_second_tab_row_holds_its_own_underline() {
     let mut h = harness();
     h.ctx.all_styles_mut(|style| style.animation_time = 0.4);

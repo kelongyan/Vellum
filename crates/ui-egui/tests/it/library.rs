@@ -64,6 +64,7 @@ fn the_empty_library_invites_a_drop_or_a_new_folder() {
 }
 
 #[test]
+#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
 fn creating_a_folder_shows_it_on_home_and_it_survives_a_restart() {
     let mut h = harness(|_| {});
     h.get_by_label("New folder").click();

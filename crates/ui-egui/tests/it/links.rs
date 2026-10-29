@@ -18,19 +18,8 @@ fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, P
 }
 
 // CUSTOM(kelongyan): the home_screen_links test was removed with the ArtCraft community card.
-
-#[test]
-fn home_community_card_closes_for_this_run() {
-    let mut h = harness(|_| {});
-    h.get_by_label("Join the ArtCraft community");
-    h.get_by_label("Close").click();
-    h.run_steps(2);
-    assert!(h.state().community_card_closed);
-    assert!(h.query_by_label("Join the ArtCraft community").is_none());
-    assert!(h.query_by_label("Join our Discord").is_none());
-    // Not remembered: a fresh app shows the card again.
-    assert!(!PdfCraftApp::new().community_card_closed);
-}
+// Upstream re-added `home_community_card_closes_for_this_run` in 0.15; the fork has no card, so
+// the test stays removed. See Rule/fork-customization.md (deletion customizations).
 
 #[test]
 fn about_dialog_shows_the_brand_and_links() {

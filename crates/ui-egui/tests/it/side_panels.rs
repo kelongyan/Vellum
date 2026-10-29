@@ -20,6 +20,9 @@ fn harness(setup: impl FnOnce(&mut PdfCraftApp) + 'static) -> Harness<'static, P
         let mut app = PdfCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("doc.pdf", None, FIXTURE.to_vec()).unwrap();
+        // CUSTOM(kelongyan): the fork collapses the Tools pane when a document opens
+        // (`app/files.rs`), so a test that measures that pane asks for it back first.
+        app.set_option("left", "open").unwrap();
         setup(&mut app);
         app
     });
