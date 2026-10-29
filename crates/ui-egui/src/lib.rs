@@ -330,6 +330,9 @@ pub struct PdfCraftApp {
     pub recent: Vec<RecentFile>,
     /// CUSTOM(kelongyan): the fork's document library behind Home (custom/home.rs).
     pub library: custom::library::Library,
+    /// CUSTOM(kelongyan): files chosen with Home's Import, so the open that finishes for one of
+    /// them keeps it in the library. Every other open leaves Home alone.
+    pub(crate) import_pending: Vec<String>,
     /// CUSTOM(kelongyan): first-page thumbnails for the Home cards (custom/thumbs.rs).
     pub thumbnails: custom::thumbs::Thumbnails,
     /// Preferences: reopen the files that were open when PdfCraft last closed (#442).

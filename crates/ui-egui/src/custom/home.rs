@@ -8,7 +8,7 @@ use std::time::{Duration, UNIX_EPOCH};
 
 use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, vec2};
 
-use crate::custom::library::{LibraryDoc, LibraryFolder};
+use crate::custom::library::{FOLDER_PALETTE, LibraryDoc, LibraryFolder};
 use crate::theme::{self, Tokens};
 use crate::{PdfCraftApp, icons, widgets};
 
@@ -50,6 +50,7 @@ struct CardActions {
     open_folder: Option<Option<u64>>,
     open_doc: Option<String>,
     star: Option<(u64, bool)>,
+    color: Option<(u64, u8)>,
     delete_folder: Option<u64>,
     rename_folder: Option<u64>,
     move_doc: Option<(String, Option<u64>)>,
@@ -121,6 +122,9 @@ fn apply_actions(app: &mut PdfCraftApp, ui: &mut egui::Ui, actions: CardActions)
     }
     if let Some((id, starred)) = actions.star {
         app.library.set_folder_starred(id, starred);
+    }
+    if let Some((id, color)) = actions.color {
+        app.library.set_folder_color(id, color);
     }
     if let Some(id) = actions.delete_folder {
         app.library.delete_folder(id);
@@ -221,8 +225,8 @@ fn heading_row(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, actions: &m
                 actions.open_dialog = Some(HomeDialog::NewFolder);
             }
             ui.add_space(10.0);
-            if pill(ui, t, "folder", tl!("Open file"), false) {
-                app.open_dialog();
+            if pill(ui, t, "file-plus", tl!("Import…"), false) {
+                app.import_pdf_dialog();
             }
         });
     });
@@ -268,7 +272,7 @@ fn library_grid(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, open_folder: O
             &if open_folder.is_some() {
                 tl!("No PDFs in this folder yet").to_string()
             } else {
-                tl!("Drop a PDF anywhere to open it, or create a folder to organize your documents.").to_string()
+                tl!("Imported PDFs stay here. A PDF you simply open shows in its tab, not in this list.").to_string()
             },
         );
         return;
@@ -319,7 +323,7 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
         egui::Shadow { offset: [0, 4], blur: 14, spread: 0, color: t.page_shadow.gamma_multiply(shadow) }
             .as_shape(body, CornerRadius { nw: 0, ne: 16, sw: 16, se: 16 }),
     );
-    let (back, front) = folder_tints(t);
+    let (back, front) = folder_tints(t, folder.color);
     let edge = if t.dark() { t.border.gamma_multiply(0.9) } else { t.border };
     // Two pixels of overlap, hidden under the body, keep the join free of a seam.
     let tab = Rect::from_min_size(egui::pos2(left, body.top() - TAB_H), vec2(TAB_W, TAB_H + 2.0));
@@ -341,6 +345,38 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     if star.clicked() {
         actions.star = Some((folder.id, !folder.starred));
     }
+    // The colour button sits on the folder's bottom right, the star's mirror. Its circle is the
+    // folder's own colour, so the control also says which colour this folder wears; it opens a
+    // palette popover. Always allocated (so the popover keeps its anchor), painted when the card
+    // is hovered or the palette is open.
+    let dot_rect = Rect::from_center_size(egui::pos2(body.right() - 20.0, body.bottom() - 20.0), vec2(26.0, 26.0));
+    let dot = ui.interact(dot_rect, ui.scope_id().with(("lib-colour", folder.id)), Sense::click()).on_hover_text(tl!("Folder colour"));
+    dot.widget_info(|| {
+        let label = crate::i18n::fmt(tl!("Folder colour for {name}"), &[("name", &folder.name)]);
+        egui::WidgetInfo::labeled(egui::Role::Button, true, label)
+    });
+    let palette = egui::Popup::menu(&dot).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside);
+    let palette_open = palette.is_open();
+    // `dot.hovered` and `dot.has_focus` count: the dot takes the hover from the card the moment
+    // the pointer reaches it (and a keyboard visitor never hovers at all), and without them the
+    // button would be invisible under the pointer or while Tab has it.
+    if press.hover > 0.01 || dot.hovered() || dot.has_focus() || palette_open {
+        let center = dot_rect.center();
+        let radius = 7.0 + if dot.hovered() { 0.5 } else { 0.0 };
+        ui.painter().circle_filled(center, radius, swatch_fill(t, folder.color));
+        ui.painter().circle_stroke(center, radius, Stroke::new(1.0, edge));
+        if palette_open || dot.has_focus() {
+            ui.painter().circle_stroke(center, radius + 3.0, Stroke::new(1.5, t.accent));
+        } else if dot.hovered() {
+            ui.painter().circle_stroke(center, radius + 3.0, Stroke::new(1.5, t.border_strong));
+        }
+    }
+    palette.show(|ui| {
+        if let Some(color) = colour_palette(ui, t, folder.color) {
+            actions.color = Some((folder.id, color));
+            ui.close();
+        }
+    });
     // Name and "N files - newest" line, on the document cards' baseline.
     let count = app.library.folder_doc_count(folder.id);
     let count_text = crate::i18n::trn(crate::i18n::current(), count as u64, "{n} file", "{n} files");
@@ -350,7 +386,7 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     };
     centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 196.0), &folder.name, theme::medium(15.0), t.text);
     centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 217.0), &meta, theme::regular(12.0), t.text_faint);
-    if resp.clicked() && !star.clicked() {
+    if resp.clicked() && !star.clicked() && !dot.clicked() {
         actions.open_folder = Some(Some(folder.id));
     }
     resp.context_menu(|ui| {
@@ -477,15 +513,78 @@ fn centered_elided(ui: &egui::Ui, _t: &Tokens, center: egui::Pos2, text: &str, f
     ui.painter().galley(rect.min, galley, color);
 }
 
-/// The folder's two tints: the tab is the back of the folder and a shade deeper, the body the
-/// front panel a shade paler, so the glyph keeps its depth without a single hairline. Both stay
-/// close to the page, so a row of folders joins the shelf instead of shouting over the white pages.
-fn folder_tints(t: &Tokens) -> (Color32, Color32) {
-    if t.dark() {
-        (t.accent_soft, t.accent_soft.lerp_to_gamma(Color32::WHITE, 0.09))
-    } else {
-        (t.accent_soft, t.accent_soft.lerp_to_gamma(Color32::WHITE, 0.16))
+/// The near-black the dark theme's folder tints are mixed against, so a colour keeps its hue in
+/// the shade instead of turning into a bright block.
+const DARK_TINT: Color32 = Color32::from_rgb(0x24, 0x26, 0x2C);
+
+/// The folder's two tints for the colour it wears: the tab is the back of the folder and a shade
+/// deeper, the body the front panel a shade paler, so the glyph keeps its depth without a second
+/// colour. Both stay close to the page, so a row of folders joins the shelf instead of shouting
+/// over the white pages. Index 0 - and anything settings kept that the palette no longer has - is
+/// the accent's own soft tint, exactly what folders wore before they had colours.
+fn folder_tints(t: &Tokens, color: u8) -> (Color32, Color32) {
+    if color == 0 || usize::from(color) >= FOLDER_PALETTE.len() {
+        return if t.dark() {
+            (t.accent_soft, t.accent_soft.lerp_to_gamma(Color32::WHITE, 0.09))
+        } else {
+            (t.accent_soft, t.accent_soft.lerp_to_gamma(Color32::WHITE, 0.16))
+        };
     }
+    let base = palette_base(color);
+    if t.dark() {
+        let back = base.lerp_to_gamma(DARK_TINT, 0.72);
+        (back, back.lerp_to_gamma(Color32::WHITE, 0.09))
+    } else {
+        (base.lerp_to_gamma(Color32::WHITE, 0.80), base.lerp_to_gamma(Color32::WHITE, 0.90))
+    }
+}
+
+/// A palette entry's hue; the accent stands in for an index the palette does not have.
+fn palette_base(color: u8) -> Color32 {
+    FOLDER_PALETTE.get(usize::from(color)).map_or(Color32::WHITE, |c| Color32::from_rgb(c.base[0], c.base[1], c.base[2]))
+}
+
+/// A palette circle's fill: the hue at reading weight in each theme - stronger than a folder tint,
+/// because a swatch is a choice to look at, not a surface to live on.
+fn swatch_fill(t: &Tokens, color: u8) -> Color32 {
+    let base = if color == 0 { t.accent } else { palette_base(color) };
+    if t.dark() { base.lerp_to_gamma(DARK_TINT, 0.42) } else { base.lerp_to_gamma(Color32::WHITE, 0.35) }
+}
+
+/// The palette popover: a small heading and one calm row of colour circles, the folder's current
+/// colour ringed and every circle named on hover. Returns the colour picked.
+fn colour_palette(ui: &mut egui::Ui, t: &Tokens, current: u8) -> Option<u8> {
+    let mut picked = None;
+    ui.label(egui::RichText::new(tl!("Folder colour")).font(theme::medium(12.0)).color(t.text_muted));
+    ui.add_space(8.0);
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 8.0;
+        for (i, entry) in FOLDER_PALETTE.iter().enumerate() {
+            let index = i as u8;
+            let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::click());
+            let name = tl!(entry.name);
+            resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, index == current, name));
+            let center = rect.center();
+            let radius = 9.0 + if resp.hovered() { 0.5 } else { 0.0 };
+            ui.painter().circle_filled(center, radius, swatch_fill(t, index));
+            ui.painter().circle_stroke(center, radius, Stroke::new(1.0, t.border));
+            if resp.has_focus() {
+                ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.accent));
+            } else if index == current {
+                // A light ring outside the circle rather than a heavy one on it, and a check that
+                // reads on the swatch's own fill: the pick is obvious without shouting.
+                ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.text_muted));
+                let ink = if t.dark() { Color32::WHITE } else { t.text };
+                icons::paint(ui, Rect::from_center_size(center, vec2(12.0, 12.0)), "check", 12.0, ink);
+            } else if resp.hovered() {
+                ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.border_strong));
+            }
+            if resp.on_hover_text(name).clicked() {
+                picked = Some(index);
+            }
+        }
+    });
+    picked
 }
 
 /// A Unix-seconds stamp as "yesterday", "3月10日" — empty for the unknown zero.
@@ -499,6 +598,40 @@ fn ago_of(unix: u64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Home is a shelf of what the user imported: merely opening a PDF must not put it there, and
+    /// a restart must not leave it behind either.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn only_an_imported_pdf_stays_in_documents() {
+        let dir = std::env::temp_dir().join(format!("pdfcraft-import-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("a scratch folder");
+        let opened = dir.join("opened.pdf");
+        let imported = dir.join("imported.pdf");
+        let pdf = include_bytes!("../../tests/data/form.pdf");
+        std::fs::write(&opened, pdf).expect("a scratch PDF");
+        std::fs::write(&imported, pdf).expect("a scratch PDF");
+        let opened = opened.to_string_lossy().into_owned();
+        let imported = imported.to_string_lossy().into_owned();
+
+        let mut app = PdfCraftApp::new();
+        // File ▸ Open, a recent file, a double-click: the document opens, Home stays as it was.
+        app.open_path(&opened);
+        assert_eq!(app.views.len(), 1, "the document opened");
+        assert!(app.library.docs().is_empty(), "opening a PDF does not put it on Home");
+        // Home's Import button is the one way in.
+        app.import_pending.push(imported.clone());
+        app.open_path(&imported);
+        assert_eq!(app.library.docs().len(), 1, "importing keeps the PDF on Home");
+        assert_eq!(app.library.docs()[0].path, imported);
+        // And it is what settings keep: a restart shows the imported one, not the opened one.
+        let saved = serde_json::to_value(&app.library).expect("library settings");
+        let mut restarted = crate::custom::library::Library::default();
+        restarted.restore(&saved);
+        assert_eq!(restarted.docs().len(), 1);
+        assert_eq!(restarted.docs()[0].path, imported);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     /// A card's two lines stay one line each, and keep their gap, whatever language Home is in.
     ///

@@ -2409,13 +2409,21 @@ animation effects	Off	关
 	Move tag later	将标签后移
 	Documents	文稿
 	New folder	新建文件夹
+	Import…	导入…
 	Move to folder…	移动到文件夹…
 	Locate file…	重新定位文件…
 	Remove from Documents	从文稿库移除
 	The file was moved or deleted	文件已移动或删除
-	Drop a PDF anywhere to open it, or create a folder to organize your documents.	将 PDF 拖入窗口即可打开，也可以创建文件夹来整理文档。
+	Imported PDFs stay here. A PDF you simply open shows in its tab, not in this list.	导入的 PDF 会保留在这里；只是打开过的 PDF 只出现在标签页中，不会进入此列表。
 	Star {name}	为 {name} 加星标
 	Unstar {name}	取消 {name} 的星标
+	Folder colour	文件夹颜色
+	Folder colour for {name}	{name} 的文件夹颜色
+	Slate	石板灰
+	Teal	青绿
+	Amber	琥珀
+	Rose	玫瑰
+	Violet	紫罗兰
 
 # Historical snapshot notice bar (View signed version / View revision).
 	You are viewing the signed version of “{from}” (revision {rev}). It is a snapshot: changes here won't affect the original.	您正在查看“{from}”的已签名版本（修订版本 {rev}）。这是快照：在此处所做的更改不会影响原始文档。

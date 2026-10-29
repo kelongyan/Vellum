@@ -87,6 +87,7 @@ impl PdfCraftApp {
             recent: Vec::new(),
             // CUSTOM(kelongyan): the fork's document library and Home thumbnails.
             library: Default::default(),
+            import_pending: Vec::new(),
             thumbnails: Default::default(),
             reopen_last_session: false,
             restore_last_view: true,

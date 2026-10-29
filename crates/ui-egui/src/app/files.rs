@@ -322,9 +322,17 @@ impl PdfCraftApp {
             #[cfg(target_os = "macos")]
             macos_association::repair(std::path::Path::new(&p));
             self.recent.retain(|r| r.path != p);
-            // CUSTOM(kelongyan): every opened PDF is remembered in the fork's document library.
+            // CUSTOM(kelongyan): Home lists what the user imported, not everything ever opened.
+            // A file chosen with Import is remembered; any other open only refreshes an entry the
+            // library already holds, so closing the app does not leave the PDF on Home.
             let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-            self.library.remember(&p, name, pages, size, now);
+            match self.import_pending.iter().position(|q| *q == p) {
+                Some(i) => {
+                    self.import_pending.remove(i);
+                    self.library.remember(&p, name, pages, size, now);
+                }
+                None => self.library.refresh(&p, name, pages, size),
+            }
             self.recent.insert(0, RecentFile { name: name.to_string(), path: p, pages, size });
             self.recent.truncate(12);
         }
@@ -649,6 +657,17 @@ impl PdfCraftApp {
                 }
             });
         }
+    }
+
+    /// Home ▸ Import: choose a PDF and keep it in the document library. Unlike File ▸ Open, the
+    /// document stays on Home after the app closes.
+    pub fn import_pdf_dialog(&mut self) {
+        self.startup_superseded = true;
+        #[cfg(not(target_arch = "wasm32"))]
+        self.pick(pickers::PickFor::Import, rfd::AsyncFileDialog::new().add_filter("PDF", &["pdf"]), true);
+        // The web build has no file paths to remember, so importing is opening there.
+        #[cfg(target_arch = "wasm32")]
+        self.open_dialog();
     }
 
     pub fn close_tab(&mut self, index: usize) {

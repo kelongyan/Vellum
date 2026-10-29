@@ -11,12 +11,35 @@ const MAX_DOCS: usize = 1000;
 /// Longest kept folder name, in characters.
 const MAX_NAME_CHARS: usize = 60;
 
+/// A colour a folder can wear on Home. `base` is the hue its light and dark tints are derived
+/// from; `name` is the tooltip's translation key. Index 0 is the accent default, so a folder made
+/// before colours existed keeps the tint it always had.
+pub struct FolderColor {
+    pub name: &'static str,
+    pub base: [u8; 3],
+}
+
+/// Home's folder palette. Eight entries fit one calm row in the palette popover.
+pub const FOLDER_PALETTE: [FolderColor; 8] = [
+    FolderColor { name: "Default", base: [0x1B, 0x63, 0xE0] },
+    FolderColor { name: "Slate", base: [0x6B, 0x72, 0x80] },
+    FolderColor { name: "Teal", base: [0x0F, 0x8A, 0x8A] },
+    FolderColor { name: "Green", base: [0x2F, 0x8A, 0x4B] },
+    FolderColor { name: "Amber", base: [0xB0, 0x7C, 0x14] },
+    FolderColor { name: "Orange", base: [0xC2, 0x54, 0x2A] },
+    FolderColor { name: "Rose", base: [0xC2, 0x43, 0x6B] },
+    FolderColor { name: "Violet", base: [0x7A, 0x5B, 0xD1] },
+];
+
 #[derive(Clone, Debug, PartialEq, serde::Deserialize, Serialize)]
 pub struct LibraryFolder {
     pub id: u64,
     pub name: String,
     #[serde(default)]
     pub starred: bool,
+    /// Index into [`FOLDER_PALETTE`]; 0 is the accent default.
+    #[serde(default)]
+    pub color: u8,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Deserialize, Serialize)]
@@ -78,8 +101,9 @@ impl Library {
         self.folders.is_empty() && self.docs.is_empty()
     }
 
-    /// Remember a document that was just opened. An existing entry keeps its folder and only
-    /// refreshes the file facts.
+    /// Remember a document the user imported. An existing entry keeps its folder and only
+    /// refreshes the file facts. Only an import calls this: a PDF that was merely opened stays out
+    /// of Home (see [`Self::refresh`]).
     pub fn remember(&mut self, path: &str, name: &str, pages: usize, size: usize, now: u64) {
         if let Some(d) = self.docs.iter_mut().find(|d| d.path == path) {
             d.name = name.to_string();
@@ -94,6 +118,17 @@ impl Library {
         self.docs.insert(0, LibraryDoc { path: path.to_string(), name: name.to_string(), folder: None, added: now, pages, size, missing: false });
     }
 
+    /// Bring a document the library already holds up to date after it was opened again. A file the
+    /// library does not hold is left out: Home shows what was imported, not everything opened.
+    pub fn refresh(&mut self, path: &str, name: &str, pages: usize, size: usize) {
+        if let Some(d) = self.docs.iter_mut().find(|d| d.path == path) {
+            d.name = name.to_string();
+            d.pages = pages;
+            d.size = size;
+            d.missing = false;
+        }
+    }
+
     pub fn create_folder(&mut self, name: &str) -> Option<u64> {
         let name = clean_name(name)?;
         if self.folders.len() >= MAX_FOLDERS {
@@ -102,7 +137,7 @@ impl Library {
         self.next_id = self.next_id.max(1);
         let id = self.next_id;
         self.next_id += 1;
-        self.folders.push(LibraryFolder { id, name, starred: false });
+        self.folders.push(LibraryFolder { id, name, starred: false, color: 0 });
         Some(id)
     }
 
@@ -116,6 +151,15 @@ impl Library {
     pub fn set_folder_starred(&mut self, id: u64, starred: bool) {
         if let Some(f) = self.folders.iter_mut().find(|f| f.id == id) {
             f.starred = starred;
+        }
+    }
+
+    /// Give a folder a colour from [`FOLDER_PALETTE`]. An index outside the palette returns it to
+    /// the accent default, so a caller can pass anything settings held.
+    pub fn set_folder_color(&mut self, id: u64, color: u8) {
+        let color = if usize::from(color) < FOLDER_PALETTE.len() { color } else { 0 };
+        if let Some(f) = self.folders.iter_mut().find(|f| f.id == id) {
+            f.color = color;
         }
     }
 
@@ -170,7 +214,10 @@ impl Library {
                     continue;
                 }
                 self.next_id = self.next_id.max(f.id + 1);
-                self.folders.push(LibraryFolder { id: f.id, name, starred: f.starred });
+                // Settings are untrusted: a colour the palette no longer has falls back to the
+                // accent default rather than inventing a swatch.
+                let color = if usize::from(f.color) < FOLDER_PALETTE.len() { f.color } else { 0 };
+                self.folders.push(LibraryFolder { id: f.id, name, starred: f.starred, color });
             }
         }
         if let Ok(docs) = serde_json::from_value::<Vec<LibraryDoc>>(value["docs"].clone()) {
@@ -223,6 +270,24 @@ mod tests {
         assert_eq!(back.docs_in(Some(id)).count(), 1);
         // The next folder id continues past the restored ones.
         assert_eq!(back.create_folder("More"), Some(id + 1));
+    }
+
+    #[test]
+    fn a_folders_colour_survives_settings_and_an_unknown_one_returns_to_the_default() {
+        let mut lib = Library::default();
+        let id = lib.create_folder("Work").unwrap();
+        assert_eq!(lib.folder(id).unwrap().color, 0, "a new folder wears the accent default");
+        lib.set_folder_color(id, 3);
+        let saved = serde_json::to_value(&lib).unwrap();
+        let mut back = Library::default();
+        back.restore(&saved);
+        assert_eq!(back.folder(id).unwrap().color, 3);
+        // Settings a newer build wrote: an index the palette does not have is the default, and a
+        // folder saved before colours existed carries none.
+        back.restore(&serde_json::json!({"folders": [{"id": 7, "name": "Old", "color": 200}]}));
+        assert_eq!(back.folder(7).unwrap().color, 0);
+        back.restore(&serde_json::json!({"folders": [{"id": 8, "name": "Older"}]}));
+        assert_eq!(back.folder(8).unwrap().color, 0);
     }
 
     #[test]

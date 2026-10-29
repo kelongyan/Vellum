@@ -38,6 +38,8 @@ use crate::files::{FilePurpose, PickTarget};
 pub enum PickFor {
     /// File ▸ Open: open the chosen file in a new tab.
     Open,
+    /// Home ▸ Import: open the chosen PDF and keep it in the document library.
+    Import,
     /// Combine, insert, replace or OCR (see [`FilePurpose`]).
     Files(FilePurpose),
 }
@@ -180,6 +182,15 @@ impl PdfCraftApp {
         self.ask(ask, target, move |app, paths| match pick_for {
             PickFor::Open => paths.iter().for_each(|p| {
                 app.open_path(&p.to_string_lossy());
+            }),
+            PickFor::Import => paths.iter().for_each(|p| {
+                // Recorded before the open: the open may finish frames later (or after a password
+                // prompt), and only the completion knows the path again.
+                let path = p.to_string_lossy().into_owned();
+                if !app.import_pending.contains(&path) {
+                    app.import_pending.push(path.clone());
+                }
+                app.open_path(&path);
             }),
             PickFor::Files(purpose) => app.use_paths(purpose, &paths),
         });
