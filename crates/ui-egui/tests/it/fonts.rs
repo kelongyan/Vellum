@@ -379,10 +379,11 @@ fn ui_fonts_work_without_craft_fonts() {
 fn primary_ui_fonts_cover_latin_and_cyrillic_catalogs() {
     use skrifa::MetadataProvider as _;
     let defs = theme::font_definitions();
-    // CUSTOM(kelongyan): this fork inserts HarmonyOS Sans SC right after the Latin face, so the
-    // first two names are its own faces only once that local face is skipped. Upstream's point -
-    // Latin and Cyrillic draw from JetBrains Mono and Inter, never from a CJK fallback - holds
-    // either way; see the same seam in `ui_fonts_work_without_craft_fonts` above.
+    // CUSTOM(kelongyan): this fork puts HarmonyOS Sans SC first in the proportional and weight
+    // families, with Inter as the fallback; the monospace stack keeps JetBrains Mono first and
+    // puts HarmonyOS after it. Upstream's point - Latin and Cyrillic draw from JetBrains Mono and
+    // Inter, never from a CJK fallback - holds either way; see the same seam in
+    // `ui_fonts_work_without_craft_fonts` above.
     let own: Vec<&str> =
         defs.families[&FontFamily::Monospace].iter().map(String::as_str).filter(|name| !name.starts_with("HarmonyOSSansSC")).take(2).collect();
     assert_eq!(&own[..], ["JetBrainsMono", "Inter"]);

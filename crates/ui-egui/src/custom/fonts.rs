@@ -1,4 +1,4 @@
-//! This fork's Chinese interface font: HarmonyOS Sans SC, read from this machine at runtime.
+//! This fork's interface font: HarmonyOS Sans SC, read from this machine at runtime.
 //!
 //! The faces are loaded, never embedded or shipped (AGENTS.md §1.4): the TTFs stay in the folder
 //! the owner picked. `PDFCRAFT_UI_FONT_DIR` points at that folder; without it the default below
@@ -28,13 +28,14 @@ struct Faces {
     bold: Option<Arc<FontData>>,
 }
 
-/// Insert the local faces into every family, after its Latin face and before the CJK fallbacks:
-/// Latin text keeps Inter (or JetBrains Mono), Chinese text draws in HarmonyOS Sans, and
-/// anything the SC faces lack falls through to the existing chain.
+/// Make the local faces the interface default: HarmonyOS Sans SC comes first in the proportional
+/// and weight families, with Inter (and the existing chain) as the fallback for anything the SC
+/// faces lack. The monospace family keeps JetBrains Mono first — HarmonyOS is not monospaced — and
+/// puts HarmonyOS after it for the Chinese text in monospace contexts.
 pub(crate) fn apply(fonts: &mut FontDefinitions) {
     let Some(faces) = faces() else { return };
     fonts.font_data.insert(REGULAR.to_owned(), faces.regular.clone());
-    insert_after(fonts, FontFamily::Proportional, "Inter", REGULAR);
+    insert_first(fonts, FontFamily::Proportional, REGULAR);
     insert_after(fonts, FontFamily::Monospace, "JetBrainsMono", REGULAR);
     let medium_name = match &faces.medium {
         Some(data) => {
@@ -43,7 +44,7 @@ pub(crate) fn apply(fonts: &mut FontDefinitions) {
         }
         None => REGULAR,
     };
-    insert_after(fonts, FontFamily::Name("medium".into()), "Inter-Medium", medium_name);
+    insert_first(fonts, FontFamily::Name("medium".into()), medium_name);
     let bold_name = match &faces.bold {
         Some(data) => {
             fonts.font_data.insert(BOLD.to_owned(), data.clone());
@@ -51,7 +52,7 @@ pub(crate) fn apply(fonts: &mut FontDefinitions) {
         }
         None => medium_name,
     };
-    insert_after(fonts, FontFamily::Name("semibold".into()), "Inter-SemiBold", bold_name);
+    insert_first(fonts, FontFamily::Name("semibold".into()), bold_name);
 }
 
 fn faces() -> Option<&'static Faces> {
@@ -66,6 +67,14 @@ fn faces() -> Option<&'static Faces> {
             })
         })
         .as_ref()
+}
+
+fn insert_first(fonts: &mut FontDefinitions, family: FontFamily, name: &str) {
+    let Some(stack) = fonts.families.get_mut(&family) else { return };
+    if stack.iter().any(|n| n == name) {
+        return;
+    }
+    stack.insert(0, name.to_owned());
 }
 
 fn insert_after(fonts: &mut FontDefinitions, family: FontFamily, anchor: &str, name: &str) {
@@ -124,16 +133,27 @@ mod tests {
     }
 
     #[test]
-    fn insertion_lands_after_the_latin_face() {
+    fn harmony_becomes_the_default_with_inter_as_fallback() {
         let mut fonts = FontDefinitions::default();
         let stack = fonts.families.entry(FontFamily::Proportional).or_default();
         stack.extend(["Inter".to_owned(), "Jp".to_owned()]);
-        insert_after(&mut fonts, FontFamily::Proportional, "Inter", REGULAR);
-        insert_after(&mut fonts, FontFamily::Proportional, "Inter", REGULAR);
+        insert_first(&mut fonts, FontFamily::Proportional, REGULAR);
+        insert_first(&mut fonts, FontFamily::Proportional, REGULAR);
         let stack = &fonts.families[&FontFamily::Proportional];
-        let at = stack.iter().position(|n| n == REGULAR).expect("inserted");
-        assert_eq!(stack[at - 1], "Inter", "right after Inter");
+        assert_eq!(stack[0], REGULAR, "HarmonyOS is the interface default");
         assert_eq!(stack.iter().filter(|n| *n == REGULAR).count(), 1, "inserted once");
-        assert_eq!(stack[at + 1], "Jp", "before the CJK fallbacks");
+        assert_eq!(stack[1], "Inter", "Inter stays as the Latin fallback");
+        assert_eq!(stack.last().map(String::as_str), Some("Jp"), "the CJK fallbacks stay last");
+    }
+
+    #[test]
+    fn monospace_keeps_jetbrains_first() {
+        let mut fonts = FontDefinitions::default();
+        let stack = fonts.families.entry(FontFamily::Monospace).or_default();
+        stack.extend(["JetBrainsMono".to_owned(), "Inter".to_owned()]);
+        insert_after(&mut fonts, FontFamily::Monospace, "JetBrainsMono", REGULAR);
+        let stack = &fonts.families[&FontFamily::Monospace];
+        assert_eq!(stack[0], "JetBrainsMono", "monospace keeps its Latin face first");
+        assert_eq!(stack[1], REGULAR, "HarmonyOS follows it for Chinese text");
     }
 }
