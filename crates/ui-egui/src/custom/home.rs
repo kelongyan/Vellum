@@ -36,6 +36,20 @@ const STAR: Color32 = Color32::from_rgb(0xE2, 0xA8, 0x2E);
 /// The open modal, if any. Stored in egui's per-context data, like other transient UI state.
 const DIALOG_ID: &str = "custom-home-dialog";
 const DIALOG_TEXT_ID: &str = "custom-home-dialog-text";
+/// The new-folder sheet's colour choice, and its closing/pending state. The colour is chosen once,
+/// at creation, and never changed afterwards.
+const DIALOG_COLOR_ID: &str = "custom-home-dialog-colour";
+const SHEET_CLOSING_ID: &str = "custom-home-sheet-closing";
+const SHEET_PENDING_ID: &str = "custom-home-sheet-pending";
+const SHEET_FOCUSED_ID: &str = "custom-home-sheet-focused";
+/// The new-folder sheet: width, inner padding, resting top and how far it drops in from above.
+const SHEET_W: f32 = 520.0;
+const SHEET_PAD: f32 = 28.0;
+const SHEET_REST_Y: f32 = 94.0;
+const SHEET_TRAVEL: f32 = 420.0;
+/// One colour swatch's box and the gap between them; eight fit a row.
+const SWATCH: f32 = 26.0;
+const SWATCH_GAP: f32 = 8.0;
 /// Which folder is open; `None` (or a stale id) means the "All" top level.
 const OPEN_FOLDER_ID: &str = "custom-home-open-folder";
 /// Multi-select: whether cards select instead of open, and which documents are picked.
@@ -72,7 +86,6 @@ struct CardActions {
     open_folder: Option<Option<u64>>,
     open_doc: Option<String>,
     star: Option<(u64, bool)>,
-    color: Option<(u64, u8)>,
     delete_folder: Option<u64>,
     rename_folder: Option<u64>,
     move_doc: Option<(String, Option<u64>)>,
@@ -110,25 +123,28 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
         });
     });
 
-    if let Some(done) = run_dialog(ui.ctx(), &t, dialog.as_ref()) {
+    let done = match dialog.as_ref() {
+        Some(HomeDialog::NewFolder) => run_new_folder_sheet(ui.ctx(), &t),
+        Some(HomeDialog::RenameFolder(_)) => run_dialog(ui.ctx(), &t, dialog.as_ref()),
+        None => None,
+    };
+    if let Some(done) = done {
         match done {
-            DialogDone::Cancel => {
-                ui.data_mut(|d| d.insert_temp(egui::Id::unique(DIALOG_ID), None::<HomeDialog>));
-            }
-            DialogDone::Confirm(text) => {
-                match dialog {
-                    Some(HomeDialog::NewFolder) => {
-                        app.library.create_folder(&text);
-                    }
-                    Some(HomeDialog::RenameFolder(id)) => app.library.rename_folder(id, &text),
-                    None => {}
+            DialogDone::Cancel => {}
+            DialogDone::Rename(text) => {
+                if let Some(HomeDialog::RenameFolder(id)) = dialog {
+                    app.library.rename_folder(id, &text);
                 }
-                ui.data_mut(|d| d.insert_temp(egui::Id::unique(DIALOG_ID), None::<HomeDialog>));
+            }
+            DialogDone::Create { name, color } => {
+                app.library.create_folder(&name, color);
             }
         }
+        ui.data_mut(|d| d.insert_temp(egui::Id::unique(DIALOG_ID), None::<HomeDialog>));
     }
 
     if let Some(dlg) = actions.open_dialog.take() {
+        let is_new = matches!(dlg, HomeDialog::NewFolder);
         let text = match &dlg {
             HomeDialog::NewFolder => String::new(),
             HomeDialog::RenameFolder(id) => app.library.folder(*id).map(|f| f.name.clone()).unwrap_or_default(),
@@ -136,6 +152,12 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
         ui.data_mut(|d| {
             d.insert_temp(egui::Id::unique(DIALOG_TEXT_ID), text);
             d.insert_temp(egui::Id::unique(DIALOG_ID), Some(dlg));
+            if is_new {
+                d.insert_temp(egui::Id::unique(DIALOG_COLOR_ID), 0u8);
+                d.insert_temp(egui::Id::unique(SHEET_CLOSING_ID), false);
+                d.insert_temp(egui::Id::unique(SHEET_PENDING_ID), None::<DialogDone>);
+                d.insert_temp(egui::Id::unique(SHEET_FOCUSED_ID), false);
+            }
         });
     }
     apply_actions(app, ui, actions);
@@ -147,9 +169,6 @@ fn apply_actions(app: &mut PdfCraftApp, ui: &mut egui::Ui, actions: CardActions)
     }
     if let Some((id, starred)) = actions.star {
         app.library.set_folder_starred(id, starred);
-    }
-    if let Some((id, color)) = actions.color {
-        app.library.set_folder_color(id, color);
     }
     if let Some(id) = actions.delete_folder {
         app.library.delete_folder(id);
@@ -213,12 +232,14 @@ fn apply_actions(app: &mut PdfCraftApp, ui: &mut egui::Ui, actions: CardActions)
     }
 }
 
+#[derive(Clone)]
 enum DialogDone {
     Cancel,
-    Confirm(String),
+    Rename(String),
+    Create { name: String, color: u8 },
 }
 
-/// Draw the open dialog. The text lives in egui data so the frame that opens it seeds it.
+/// Draw the rename dialog. The text lives in egui data so the frame that opens it seeds it.
 fn run_dialog(ctx: &egui::Context, t: &Tokens, dialog: Option<&HomeDialog>) -> Option<DialogDone> {
     let dlg = dialog?;
     let id = match dlg {
@@ -257,13 +278,214 @@ fn run_dialog(ctx: &egui::Context, t: &Tokens, dialog: Option<&HomeDialog>) -> O
             }
         });
         if submit {
-            done = Some(DialogDone::Confirm(text));
+            done = Some(DialogDone::Rename(text));
         }
     });
     if modal.should_close() && done.is_none() {
         done = Some(DialogDone::Cancel);
     }
     done
+}
+
+/// The new-folder sheet: it drops in from above over a dimmed Home on the fork's `LARGE` rung, and
+/// holds the folder preview, its name field and the colour grid. A folder keeps the colour chosen
+/// here; the card has no colour control afterwards.
+fn run_new_folder_sheet(ctx: &egui::Context, t: &Tokens) -> Option<DialogDone> {
+    let closing = ctx.data(|d| d.get_temp::<bool>(egui::Id::unique(SHEET_CLOSING_ID))).unwrap_or(false);
+    let pending = ctx.data(|d| d.get_temp::<Option<DialogDone>>(egui::Id::unique(SHEET_PENDING_ID))).flatten();
+    let progress = tempo::switch(ctx, egui::Id::unique("custom-home-sheet"), !closing, tempo::LARGE);
+    if closing && progress <= 0.001 {
+        ctx.data_mut(|d| {
+            d.insert_temp(egui::Id::unique(SHEET_CLOSING_ID), false);
+            d.insert_temp(egui::Id::unique(SHEET_PENDING_ID), None::<DialogDone>);
+        });
+        return pending.or(Some(DialogDone::Cancel));
+    }
+
+    let screen = ctx.content_rect();
+    let veil = ((0.38 * progress).clamp(0.0, 1.0) * 255.0).round() as u8;
+    egui::Area::new(egui::Id::unique("custom-home-sheet-veil")).order(egui::Order::Middle).fixed_pos(screen.min).show(ctx, |ui| {
+        let (rect, resp) = ui.allocate_exact_size(screen.size(), Sense::click());
+        ui.painter().rect_filled(rect, egui::CornerRadius::same(0), Color32::from_black_alpha(veil));
+        if resp.clicked() && !closing {
+            begin_sheet_close(ctx, DialogDone::Cancel);
+        }
+    });
+
+    let y = screen.top() + SHEET_REST_Y - (1.0 - progress) * SHEET_TRAVEL;
+    let pos = egui::pos2(screen.center().x - SHEET_W * 0.5, y);
+    let mut done = None;
+    egui::Area::new(egui::Id::unique("custom-home-sheet")).order(egui::Order::Foreground).fixed_pos(pos).show(ctx, |ui| {
+        ui.set_width(SHEET_W);
+        ui.set_opacity(progress.clamp(0.0, 1.0));
+        let frame = egui::Frame::new()
+            .fill(t.card)
+            .stroke(Stroke::new(1.0, t.border))
+            .corner_radius(egui::CornerRadius::same(18))
+            .inner_margin(egui::Margin::same(SHEET_PAD as i8))
+            .shadow(ctx.global_style().visuals.window_shadow);
+        frame.show(ui, |ui| {
+            ui.set_width(SHEET_W - 2.0 * SHEET_PAD);
+            done = sheet_body(ui, t, closing);
+        });
+    });
+    if let Some(action) = done {
+        begin_sheet_close(ctx, action);
+    }
+    None
+}
+
+fn begin_sheet_close(ctx: &egui::Context, action: DialogDone) {
+    ctx.data_mut(|d| {
+        d.insert_temp(egui::Id::unique(SHEET_CLOSING_ID), true);
+        d.insert_temp(egui::Id::unique(SHEET_PENDING_ID), Some(action));
+    });
+}
+
+/// The sheet's contents. Returns the action the user chose this frame.
+fn sheet_body(ui: &mut egui::Ui, t: &Tokens, closing: bool) -> Option<DialogDone> {
+    let text_id = egui::Id::unique(DIALOG_TEXT_ID);
+    let color_id = egui::Id::unique(DIALOG_COLOR_ID);
+    let mut text = ui.data(|d| d.get_temp::<String>(text_id)).unwrap_or_default();
+    let mut color = ui.data(|d| d.get_temp::<u8>(color_id)).unwrap_or(0);
+    let mut done = None;
+
+    let heading = ui.vertical_centered(|ui| ui.label(egui::RichText::new(tl!("New folder")).font(theme::medium(12.5)).color(t.text_muted)));
+    let heading_id = heading.inner.id;
+    ui.add_space(6.0);
+    let (preview, _) = ui.allocate_exact_size(vec2(ui.available_width(), 116.0), Sense::hover());
+    paint_folder_preview(ui, t, color, preview);
+
+    ui.add_space(12.0);
+    let field = egui::Frame::new()
+        .fill(t.pasteboard)
+        .stroke(Stroke::new(1.0, t.border))
+        .corner_radius(egui::CornerRadius::same(18))
+        .inner_margin(egui::Margin::symmetric(16, 8))
+        .show(ui, |ui| {
+            ui.add(
+                egui::TextEdit::singleline(&mut text)
+                    .frame(egui::Frame::NONE)
+                    .hint_text(tl!("Name"))
+                    .font(theme::regular(14.0))
+                    .desired_width(f32::INFINITY)
+                    .align(egui::Align2::LEFT_CENTER),
+            )
+            .labelled_by(heading_id)
+        })
+        .inner;
+    if !closing && !ui.data(|d| d.get_temp::<bool>(egui::Id::unique(SHEET_FOCUSED_ID)).unwrap_or(false)) {
+        field.request_focus();
+        ui.data_mut(|d| d.insert_temp(egui::Id::unique(SHEET_FOCUSED_ID), true));
+    }
+    ui.data_mut(|d| d.insert_temp(text_id, text.clone()));
+
+    ui.add_space(18.0);
+    ui.vertical_centered(|ui| {
+        ui.label(egui::RichText::new(tl!("Colour")).font(theme::medium(13.0)).color(t.text_muted));
+    });
+    ui.add_space(10.0);
+    if let Some(picked) = colour_choices(ui, t, color)
+        && !closing
+    {
+        color = picked;
+    }
+    ui.data_mut(|d| d.insert_temp(color_id, color));
+
+    ui.add_space(18.0);
+    if !closing {
+        let enter = ui.input(|i| i.key_pressed(egui::Key::Enter));
+        if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+            done = Some(DialogDone::Cancel);
+        }
+        if enter && !text.trim().is_empty() {
+            done = Some(DialogDone::Create { name: text.clone(), color });
+        }
+    }
+    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+        let create = widgets::pill_button(ui, tl!("Create"), true).clicked();
+        if create && !closing && !text.trim().is_empty() {
+            done = Some(DialogDone::Create { name: text.clone(), color });
+        }
+        ui.add_space(8.0);
+        if widgets::pill_button(ui, tl!("Cancel"), false).clicked() && !closing {
+            done = Some(DialogDone::Cancel);
+        }
+    });
+    done
+}
+
+/// The new-folder colour grid: three rows of eight, the current one ringed with a check.
+fn colour_choices(ui: &mut egui::Ui, t: &Tokens, current: u8) -> Option<u8> {
+    let width = 8.0 * SWATCH + 7.0 * SWATCH_GAP;
+    let rows = FOLDER_PALETTE.len().div_ceil(8);
+    let mut picked = None;
+    ui.horizontal(|ui| {
+        ui.add_space(((ui.available_width() - width) * 0.5).max(0.0));
+        ui.vertical(|ui| {
+            for row in 0..rows {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = SWATCH_GAP;
+                    for col in 0..8 {
+                        let i = row * 8 + col;
+                        let Some(entry) = FOLDER_PALETTE.get(i) else { continue };
+                        let index = i as u8;
+                        let (rect, resp) = ui.allocate_exact_size(vec2(SWATCH, SWATCH), Sense::click());
+                        let name = tl!(entry.name);
+                        resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, index == current, name));
+                        let center = rect.center();
+                        let radius = 9.0 + if resp.hovered() { 0.5 } else { 0.0 };
+                        ui.painter().circle_filled(center, radius, swatch_fill(t, index));
+                        ui.painter().circle_stroke(center, radius, Stroke::new(1.0, t.border));
+                        if resp.has_focus() {
+                            ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.accent));
+                        } else if index == current {
+                            ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.text_muted));
+                            let ink = if t.dark() { Color32::WHITE } else { t.text };
+                            icons::paint(ui, Rect::from_center_size(center, vec2(12.0, 12.0)), "check", 12.0, ink);
+                        } else if resp.hovered() {
+                            ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.border_strong));
+                        }
+                        if resp.on_hover_text(name).clicked() {
+                            picked = Some(index);
+                        }
+                    }
+                });
+                if row + 1 < rows {
+                    ui.add_space(SWATCH_GAP);
+                }
+            }
+        });
+    });
+    picked
+}
+
+/// The large folder on the sheet: the card's silhouette, tinted with the colour being chosen.
+fn paint_folder_preview(ui: &egui::Ui, t: &Tokens, color: u8, rect: Rect) {
+    const W: f32 = 132.0;
+    const H: f32 = 92.0;
+    const TAB_W_PREVIEW: f32 = 34.0;
+    const TAB_H_PREVIEW: f32 = 14.0;
+    let block_h = H + TAB_H_PREVIEW;
+    let left = rect.center().x - W * 0.5;
+    let body_top = rect.center().y - block_h * 0.5 + TAB_H_PREVIEW;
+    let body = Rect::from_min_size(egui::pos2(left, body_top), vec2(W, H));
+    let tab = Rect::from_min_size(egui::pos2(left, body_top - TAB_H_PREVIEW), vec2(TAB_W_PREVIEW, TAB_H_PREVIEW + 2.0));
+    // The preview wears the colour at reading strength, unlike the pale tint the cards live on:
+    // it is what the user is choosing, so the sheet shows it.
+    let base = if color == 0 || usize::from(color) >= FOLDER_PALETTE.len() { t.accent } else { palette_base(color) };
+    let (back, front) = if t.dark() {
+        (base.lerp_to_gamma(DARK_TINT, 0.35), base.lerp_to_gamma(DARK_TINT, 0.35).lerp_to_gamma(Color32::WHITE, 0.10))
+    } else {
+        (base.lerp_to_gamma(Color32::WHITE, 0.20), base.lerp_to_gamma(Color32::WHITE, 0.45))
+    };
+    let edge = if t.dark() { t.border.gamma_multiply(0.9) } else { t.border };
+    ui.painter().add(
+        egui::Shadow { offset: [0, 4], blur: 14, spread: 0, color: t.page_shadow }
+            .as_shape(body, egui::CornerRadius { nw: 0, ne: 16, sw: 16, se: 16 }),
+    );
+    ui.painter().rect(tab, egui::CornerRadius { nw: 8, ne: 8, sw: 0, se: 0 }, back, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
+    ui.painter().rect(body, egui::CornerRadius { nw: 0, ne: 16, sw: 16, se: 16 }, front, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
 }
 
 fn heading_row(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, open_folder: Option<u64>, actions: &mut CardActions) {
@@ -463,41 +685,6 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     if star.clicked() {
         actions.star = Some((folder.id, !folder.starred));
     }
-    // The colour button sits on the folder's bottom right, the star's mirror. Its circle is the
-    // folder's own colour, so the control also says which colour this folder wears; it opens a
-    // palette popover. Always allocated (so the popover keeps its anchor), painted when the card
-    // is hovered or the palette is open.
-    let dot_rect = Rect::from_center_size(egui::pos2(body.right() - 20.0, body.bottom() - 20.0), vec2(26.0, 26.0));
-    let dot = ui.interact(dot_rect, ui.scope_id().with(("lib-colour", folder.id)), Sense::click()).on_hover_text(tl!("Folder colour"));
-    dot.widget_info(|| {
-        let label = crate::i18n::fmt(tl!("Folder colour for {name}"), &[("name", &folder.name)]);
-        egui::WidgetInfo::labeled(egui::Role::Button, true, label)
-    });
-    let palette = egui::Popup::menu(&dot).close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside);
-    let palette_open = palette.is_open();
-    // `dot.hovered` and `dot.has_focus` count: the dot takes the hover from the card the moment
-    // the pointer reaches it (and a keyboard visitor never hovers at all), and without them the
-    // button would be invisible under the pointer or while Tab has it. `corner` is the pointer in
-    // the folder's bottom-right corner: the button is a corner affordance, so hovering anywhere
-    // else on the card leaves the folder face clean.
-    let corner = Rect::from_center_size(dot_rect.center(), vec2(44.0, 44.0));
-    if ui.rect_contains_pointer(corner) || dot.hovered() || dot.has_focus() || palette_open {
-        let center = dot_rect.center();
-        let radius = 7.0 + if dot.hovered() { 0.5 } else { 0.0 };
-        ui.painter().circle_filled(center, radius, swatch_fill(t, folder.color));
-        ui.painter().circle_stroke(center, radius, Stroke::new(1.0, edge));
-        if palette_open || dot.has_focus() {
-            ui.painter().circle_stroke(center, radius + 3.0, Stroke::new(1.5, t.accent));
-        } else if dot.hovered() {
-            ui.painter().circle_stroke(center, radius + 3.0, Stroke::new(1.5, t.border_strong));
-        }
-    }
-    palette.show(|ui| {
-        if let Some(color) = colour_palette(ui, t, folder.color) {
-            actions.color = Some((folder.id, color));
-            ui.close();
-        }
-    });
     // Name and "N files - newest" line, on the document cards' baseline.
     let count = app.library.folder_doc_count(folder.id);
     let count_text = crate::i18n::trn(crate::i18n::current(), count as u64, "{n} file", "{n} files");
@@ -507,7 +694,7 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     };
     centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 196.0), &folder.name, theme::medium(15.0), t.text);
     centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 217.0), &meta, theme::regular(12.0), t.text_faint);
-    if resp.clicked() && !star.clicked() && !dot.clicked() {
+    if resp.clicked() && !star.clicked() {
         actions.open_folder = Some(Some(folder.id));
     }
     resp.context_menu(|ui| {
@@ -742,42 +929,6 @@ fn swatch_fill(t: &Tokens, color: u8) -> Color32 {
     if t.dark() { base.lerp_to_gamma(DARK_TINT, 0.42) } else { base.lerp_to_gamma(Color32::WHITE, 0.35) }
 }
 
-/// The palette popover: a small heading and one calm row of colour circles, the folder's current
-/// colour ringed and every circle named on hover. Returns the colour picked.
-fn colour_palette(ui: &mut egui::Ui, t: &Tokens, current: u8) -> Option<u8> {
-    let mut picked = None;
-    ui.label(egui::RichText::new(tl!("Folder colour")).font(theme::medium(12.0)).color(t.text_muted));
-    ui.add_space(8.0);
-    ui.horizontal(|ui| {
-        ui.spacing_mut().item_spacing.x = 8.0;
-        for (i, entry) in FOLDER_PALETTE.iter().enumerate() {
-            let index = i as u8;
-            let (rect, resp) = ui.allocate_exact_size(vec2(26.0, 26.0), Sense::click());
-            let name = tl!(entry.name);
-            resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, index == current, name));
-            let center = rect.center();
-            let radius = 9.0 + if resp.hovered() { 0.5 } else { 0.0 };
-            ui.painter().circle_filled(center, radius, swatch_fill(t, index));
-            ui.painter().circle_stroke(center, radius, Stroke::new(1.0, t.border));
-            if resp.has_focus() {
-                ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.accent));
-            } else if index == current {
-                // A light ring outside the circle rather than a heavy one on it, and a check that
-                // reads on the swatch's own fill: the pick is obvious without shouting.
-                ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.text_muted));
-                let ink = if t.dark() { Color32::WHITE } else { t.text };
-                icons::paint(ui, Rect::from_center_size(center, vec2(12.0, 12.0)), "check", 12.0, ink);
-            } else if resp.hovered() {
-                ui.painter().circle_stroke(center, 12.5, Stroke::new(1.5, t.border_strong));
-            }
-            if resp.on_hover_text(name).clicked() {
-                picked = Some(index);
-            }
-        }
-    });
-    picked
-}
-
 /// A Unix-seconds stamp as "yesterday", "3月10日" — empty for the unknown zero.
 fn ago_of(unix: u64) -> String {
     if unix == 0 {
@@ -835,7 +986,7 @@ mod tests {
         let path = path.to_string_lossy().into_owned();
 
         let mut app = PdfCraftApp::new();
-        let folder = app.library.create_folder("Work").expect("a folder");
+        let folder = app.library.create_folder("Work", 0).expect("a folder");
         app.import_pending.push((path.clone(), Some(folder)));
         app.open_path(&path);
         assert_eq!(app.library.docs_in(Some(folder)).count(), 1, "the import is filed in the open folder");

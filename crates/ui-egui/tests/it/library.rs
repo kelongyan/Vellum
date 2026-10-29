@@ -72,7 +72,9 @@ fn creating_a_folder_shows_it_on_home_and_it_survives_a_restart() {
     h.get_by_role_and_label(Role::TextInput, "New folder").type_text("Bills");
     h.run_steps(2);
     h.get_by_label("Create").click();
-    h.run_steps(2);
+    // The sheet slides away before it applies the create (the fork's LARGE rung; the harness has
+    // no easing, so this is one extra frame), and the card appears on the frame after that.
+    h.run_steps(3);
     h.get_by_label("Bills");
     assert_eq!(h.state().library.folders().len(), 1);
     // The library rides in the saved settings.
@@ -100,7 +102,7 @@ fn an_opened_pdf_is_remembered_on_home() {
 #[test]
 fn renaming_a_folder_updates_its_card() {
     let mut h = harness(|app| {
-        app.library.create_folder("Old name");
+        app.library.create_folder("Old name", 0);
     });
     h.get_by_label("Old name");
     h.state_mut().library.rename_folder(1, "New name");
@@ -151,9 +153,9 @@ fn library_shots_for_review() {
     };
     let (r_in, c_in, m_in) = (r.clone(), c.clone(), m.clone());
     let mut h = harness(move |app| {
-        let bills = app.library.create_folder("申论").unwrap();
-        app.library.create_folder("行测");
-        let tax = app.library.create_folder("历年真题").unwrap();
+        let bills = app.library.create_folder("申论", 6).unwrap();
+        app.library.create_folder("行测", 3);
+        let tax = app.library.create_folder("历年真题", 12).unwrap();
         app.library.set_folder_starred(tax, true);
         app.library.remember(&r_in, "报告-2026-Q3.pdf", 12, 2_400_000, now.saturating_sub(day * 2));
         app.library.remember(&c_in, "合同扫描件.pdf", 3, 2_400_000, now.saturating_sub(day / 2));

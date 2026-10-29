@@ -19,8 +19,9 @@ pub struct FolderColor {
     pub base: [u8; 3],
 }
 
-/// Home's folder palette. Eight entries fit one calm row in the palette popover.
-pub const FOLDER_PALETTE: [FolderColor; 8] = [
+/// Home's folder palette: three calm rows of eight. Indices 0-7 are the original colours, so a
+/// folder made before the wider palette keeps the tint it always had; 8-15 are deeper, 16-23 pastel.
+pub const FOLDER_PALETTE: [FolderColor; 24] = [
     FolderColor { name: "Default", base: [0x1B, 0x63, 0xE0] },
     FolderColor { name: "Slate", base: [0x6B, 0x72, 0x80] },
     FolderColor { name: "Teal", base: [0x0F, 0x8A, 0x8A] },
@@ -29,6 +30,22 @@ pub const FOLDER_PALETTE: [FolderColor; 8] = [
     FolderColor { name: "Orange", base: [0xC2, 0x54, 0x2A] },
     FolderColor { name: "Rose", base: [0xC2, 0x43, 0x6B] },
     FolderColor { name: "Violet", base: [0x7A, 0x5B, 0xD1] },
+    FolderColor { name: "Wine", base: [0x7E, 0x2F, 0x3A] },
+    FolderColor { name: "Rust", base: [0xA3, 0x4E, 0x2A] },
+    FolderColor { name: "Olive", base: [0x7A, 0x7A, 0x22] },
+    FolderColor { name: "Forest", base: [0x1F, 0x6B, 0x3A] },
+    FolderColor { name: "Navy", base: [0x1F, 0x4E, 0x8C] },
+    FolderColor { name: "Plum", base: [0x5B, 0x3A, 0x82] },
+    FolderColor { name: "Berry", base: [0x8A, 0x2B, 0x5E] },
+    FolderColor { name: "Graphite", base: [0x4B, 0x4F, 0x57] },
+    FolderColor { name: "Pastel Rose", base: [0xE4, 0x8A, 0x9A] },
+    FolderColor { name: "Peach", base: [0xE8, 0xA9, 0x7E] },
+    FolderColor { name: "Butter", base: [0xE6, 0xC8, 0x6E] },
+    FolderColor { name: "Mint", base: [0x8F, 0xCF, 0xA6] },
+    FolderColor { name: "Sky", base: [0x8F, 0xBD, 0xE4] },
+    FolderColor { name: "Lilac", base: [0xB8, 0xA6, 0xE0] },
+    FolderColor { name: "Blush", base: [0xE4, 0xA6, 0xC4] },
+    FolderColor { name: "Cloud", base: [0xC9, 0xC6, 0xBE] },
 ];
 
 #[derive(Clone, Debug, PartialEq, serde::Deserialize, Serialize)]
@@ -129,15 +146,18 @@ impl Library {
         }
     }
 
-    pub fn create_folder(&mut self, name: &str) -> Option<u64> {
+    /// Create a folder with the colour it will keep: a folder's colour is chosen here and cannot
+    /// be changed afterwards.
+    pub fn create_folder(&mut self, name: &str, color: u8) -> Option<u64> {
         let name = clean_name(name)?;
         if self.folders.len() >= MAX_FOLDERS {
             return None;
         }
+        let color = if usize::from(color) < FOLDER_PALETTE.len() { color } else { 0 };
         self.next_id = self.next_id.max(1);
         let id = self.next_id;
         self.next_id += 1;
-        self.folders.push(LibraryFolder { id, name, starred: false, color: 0 });
+        self.folders.push(LibraryFolder { id, name, starred: false, color });
         Some(id)
     }
 
@@ -151,15 +171,6 @@ impl Library {
     pub fn set_folder_starred(&mut self, id: u64, starred: bool) {
         if let Some(f) = self.folders.iter_mut().find(|f| f.id == id) {
             f.starred = starred;
-        }
-    }
-
-    /// Give a folder a colour from [`FOLDER_PALETTE`]. An index outside the palette returns it to
-    /// the accent default, so a caller can pass anything settings held.
-    pub fn set_folder_color(&mut self, id: u64, color: u8) {
-        let color = if usize::from(color) < FOLDER_PALETTE.len() { color } else { 0 };
-        if let Some(f) = self.folders.iter_mut().find(|f| f.id == id) {
-            f.color = color;
         }
     }
 
@@ -255,7 +266,7 @@ mod tests {
     #[test]
     fn folders_and_documents_round_trip_through_settings() {
         let mut lib = Library::default();
-        let id = lib.create_folder("  Bills  ").unwrap();
+        let id = lib.create_folder("  Bills  ", 0).unwrap();
         lib.remember("/nowhere/a.pdf", "a.pdf", 3, 100, 7);
         lib.remember("/nowhere/b.pdf", "b.pdf", 1, 10, 9);
         lib.move_doc("/nowhere/a.pdf", Some(id));
@@ -269,15 +280,14 @@ mod tests {
         assert!(back.folders()[0].starred);
         assert_eq!(back.docs_in(Some(id)).count(), 1);
         // The next folder id continues past the restored ones.
-        assert_eq!(back.create_folder("More"), Some(id + 1));
+        assert_eq!(back.create_folder("More", 0), Some(id + 1));
     }
 
     #[test]
     fn a_folders_colour_survives_settings_and_an_unknown_one_returns_to_the_default() {
         let mut lib = Library::default();
-        let id = lib.create_folder("Work").unwrap();
-        assert_eq!(lib.folder(id).unwrap().color, 0, "a new folder wears the accent default");
-        lib.set_folder_color(id, 3);
+        let id = lib.create_folder("Work", 3).unwrap();
+        assert_eq!(lib.folder(id).unwrap().color, 3, "a new folder keeps the colour chosen at creation");
         let saved = serde_json::to_value(&lib).unwrap();
         let mut back = Library::default();
         back.restore(&saved);
@@ -310,7 +320,7 @@ mod tests {
     #[test]
     fn deleting_a_folder_returns_its_documents_to_all() {
         let mut lib = Library::default();
-        let id = lib.create_folder("Scans").unwrap();
+        let id = lib.create_folder("Scans", 0).unwrap();
         lib.remember("/nowhere/a.pdf", "a.pdf", 1, 1, 1);
         lib.move_doc("/nowhere/a.pdf", Some(id));
         lib.delete_folder(id);
