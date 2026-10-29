@@ -15,8 +15,13 @@ use crate::{PdfCraftApp, icons, widgets};
 /// Card metrics of the grid.
 const CARD_W: f32 = 170.0;
 const CARD_GAP: f32 = 24.0;
-const FOLDER_CARD_H: f32 = 160.0;
 const DOC_CARD_H: f32 = 232.0;
+/// The folder glyph on a card: one silhouette - a tab standing on a body - so the shelf reads as
+/// folders at a glance instead of a pair of blocks stacked together.
+const FOLDER_W: f32 = 148.0;
+const FOLDER_H: f32 = 100.0;
+const TAB_W: f32 = 40.0;
+const TAB_H: f32 = 16.0;
 /// The cover fills the card's width bar a 15-point margin, so the card reads as the page rather
 /// than a frame around a small sheet: 170 - 2 * 15.
 const COVER_W: f32 = 140.0;
@@ -290,30 +295,38 @@ enum GridItem<'a> {
 }
 
 fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &LibraryFolder, actions: &mut CardActions) {
-    let (rect, resp) = ui.allocate_exact_size(vec2(CARD_W, FOLDER_CARD_H), Sense::click());
+    // CUSTOM(kelongyan): a folder is a card like a document - same height, same title baseline -
+    // so a row that mixes the two stays on one grid instead of hanging 72 points short.
+    let (rect, resp) = ui.allocate_exact_size(vec2(CARD_W, DOC_CARD_H), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &folder.name));
     let press = theme::Press::track(ui, &resp);
     press.wash(ui, rect, 10, false);
     // The folder floats up while hovered.
     let lift = press.hover * -2.0;
-    let top = rect.top() + 10.0 + lift;
-    let left = rect.center().x - 58.0;
-    ui.painter().rect(
-        Rect::from_min_size(egui::pos2(left + 6.0, top + 2.0), vec2(104.0, 30.0)),
-        CornerRadius::same(6),
-        folder_back(t),
-        Stroke::NONE,
-        egui::StrokeKind::Inside,
+    // One silhouette on the cover's own baseline: a tab standing on a body, the tab a shade deeper
+    // (the folder's back) and the body paler (its front panel), so the glyph keeps its depth without
+    // a second colour. The body's top-left corner is square so the tab's left edge runs straight
+    // into it; only the far corners are rounded. The block is centered on the document covers' own
+    // slot, so a mixed row reads on one shelf instead of hanging off it.
+    let block_h = TAB_H + FOLDER_H;
+    let top = rect.top() + 2.0 + (COVER_H - block_h) * 0.5 + lift;
+    let left = rect.center().x - FOLDER_W / 2.0;
+    let body = Rect::from_min_size(egui::pos2(left, top + TAB_H), vec2(FOLDER_W, FOLDER_H));
+    // A soft shadow lets the folder sit on the page rather than being pasted onto it; the hairline
+    // keeps the outline crisp where the tint comes close to the pasteboard.
+    let shadow = (0.55 + press.hover * 0.35).min(1.0);
+    ui.painter().add(
+        egui::Shadow { offset: [0, 4], blur: 14, spread: 0, color: t.page_shadow.gamma_multiply(shadow) }
+            .as_shape(body, CornerRadius { nw: 0, ne: 16, sw: 16, se: 16 }),
     );
-    ui.painter().rect(
-        Rect::from_min_size(egui::pos2(left, top + 18.0), vec2(116.0, 56.0)),
-        CornerRadius::same(10),
-        folder_front(t),
-        Stroke::NONE,
-        egui::StrokeKind::Inside,
-    );
+    let (back, front) = folder_tints(t);
+    let edge = if t.dark() { t.border.gamma_multiply(0.9) } else { t.border };
+    // Two pixels of overlap, hidden under the body, keep the join free of a seam.
+    let tab = Rect::from_min_size(egui::pos2(left, body.top() - TAB_H), vec2(TAB_W, TAB_H + 2.0));
+    ui.painter().rect(tab, CornerRadius { nw: 8, ne: 8, sw: 0, se: 0 }, back, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
+    ui.painter().rect(body, CornerRadius { nw: 0, ne: 16, sw: 16, se: 16 }, front, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
     // The star sits on the folder's top right; it appears when starred or hovered.
-    let star_rect = Rect::from_center_size(egui::pos2(left + 98.0, top + 20.0), vec2(26.0, 26.0));
+    let star_rect = Rect::from_center_size(egui::pos2(body.right() - 20.0, body.top() + 20.0), vec2(26.0, 26.0));
     let star = ui.interact(star_rect, ui.scope_id().with(("lib-star", folder.id)), Sense::click());
     let star_label = if folder.starred {
         crate::i18n::fmt(tl!("Unstar {name}"), &[("name", &folder.name)])
@@ -328,15 +341,15 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     if star.clicked() {
         actions.star = Some((folder.id, !folder.starred));
     }
-    // Name and "N files · newest" line.
+    // Name and "N files - newest" line, on the document cards' baseline.
     let count = app.library.folder_doc_count(folder.id);
     let count_text = crate::i18n::trn(crate::i18n::current(), count as u64, "{n} file", "{n} files");
     let meta = match app.library.folder_newest_added(folder.id) {
         Some(added) if added > 0 => format!("{count_text}  ·  {}", ago_of(added)),
         _ => count_text,
     };
-    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 118.0), &folder.name, theme::medium(13.5), t.text);
-    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 138.0), &meta, theme::regular(11.5), t.text_faint);
+    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 196.0), &folder.name, theme::medium(15.0), t.text);
+    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 217.0), &meta, theme::regular(12.0), t.text_faint);
     if resp.clicked() && !star.clicked() {
         actions.open_folder = Some(Some(folder.id));
     }
@@ -464,13 +477,15 @@ fn centered_elided(ui: &egui::Ui, _t: &Tokens, center: egui::Pos2, text: &str, f
     ui.painter().galley(rect.min, galley, color);
 }
 
-/// The folder colours follow the accent, so both themes keep the shelf's tint.
-fn folder_front(t: &Tokens) -> Color32 {
-    t.accent.lerp_to_gamma(Color32::WHITE, 0.55)
-}
-
-fn folder_back(t: &Tokens) -> Color32 {
-    t.accent.lerp_to_gamma(Color32::WHITE, 0.42)
+/// The folder's two tints: the tab is the back of the folder and a shade deeper, the body the
+/// front panel a shade paler, so the glyph keeps its depth without a single hairline. Both stay
+/// close to the page, so a row of folders joins the shelf instead of shouting over the white pages.
+fn folder_tints(t: &Tokens) -> (Color32, Color32) {
+    if t.dark() {
+        (t.accent_soft, t.accent_soft.lerp_to_gamma(Color32::WHITE, 0.09))
+    } else {
+        (t.accent_soft, t.accent_soft.lerp_to_gamma(Color32::WHITE, 0.16))
+    }
 }
 
 /// A Unix-seconds stamp as "yesterday", "3月10日" — empty for the unknown zero.
