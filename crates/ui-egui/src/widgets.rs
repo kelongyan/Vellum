@@ -132,13 +132,21 @@ pub(crate) fn paint_left(ui: &egui::Ui, pos: egui::Pos2, text: &str, font: egui:
 
 /// A mode-bar tab: text with an underline when active.
 pub fn mode_tab(ui: &mut egui::Ui, label: &str, active: bool) -> Response {
+    // CUSTOM(kelongyan): dialog tab rows keep the 48 pt row; the mode bar asks for its own height.
+    mode_tab_sized(ui, label, active, 48.0)
+}
+
+// CUSTOM(kelongyan): a mode-bar tab at its bar's height (40 pt), so the strip reads no taller
+// than the 38 pt tab strip above it. The press well and the underline follow the same geometry;
+// dialog tab rows keep `mode_tab`'s 48 pt.
+pub(crate) fn mode_tab_sized(ui: &mut egui::Ui, label: &str, active: bool, height: f32) -> Response {
     let t = Tokens::get(ui.ctx());
     let font = if active { theme::semibold(14.0) } else { theme::medium(14.0) };
     let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_owned(), font.clone(), t.text).size().x);
-    let (rect, resp) = ui.allocate_exact_size(vec2(w + 22.0, 48.0), Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(vec2(w + 22.0, height), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, ui.is_enabled(), active, label));
     let press = theme::Press::track(ui, &resp);
-    let well = rect.shrink2(vec2(2.0, 9.0));
+    let well = rect.shrink2(vec2(2.0, ((height - 30.0) / 2.0).max(0.0)));
     if active {
         if press.down > 0.01 {
             ui.painter().rect_filled(well, CornerRadius::same(6), t.pressed.gamma_multiply(press.down));
@@ -183,6 +191,7 @@ pub fn mode_tab(ui: &mut egui::Ui, label: &str, active: bool) -> Response {
     }
     theme::hand(resp)
 }
+// CUSTOM-END
 
 /// Rounded pill button; `primary` fills with the accent.
 pub fn pill_button(ui: &mut egui::Ui, label: &str, primary: bool) -> Response {
@@ -246,13 +255,16 @@ pub fn ghost_button_sized(ui: &mut egui::Ui, icon: &str, label: &str, height: f3
 /// A search-field lookalike that opens the command palette.
 pub fn search_box(ui: &mut egui::Ui, placeholder: &str, width: f32) -> Response {
     let t = Tokens::get(ui.ctx());
-    let (rect, resp) = ui.allocate_exact_size(vec2(width, 32.0), Sense::click());
+    // CUSTOM(kelongyan): a slimmer field for the 40 pt mode bar: 28 pt tall, radius 14, icon at 6
+    // (upstream: 32 pt, radius 16, icon at 8).
+    let (rect, resp) = ui.allocate_exact_size(vec2(width, 28.0), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), placeholder));
     let press = theme::Press::track(ui, &resp);
     let fill = press.fill(t.field, t.hover, t.pressed);
     let edge = t.border.lerp_to_gamma(t.text_muted, press.hover * 0.35);
-    ui.painter().rect(rect, CornerRadius::same(16), fill, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
-    icons::paint(ui, Rect::from_min_size(rect.min + vec2(10.0, 8.0), vec2(16.0, 16.0)), "search", 15.0, t.text_muted);
+    ui.painter().rect(rect, CornerRadius::same(14), fill, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
+    icons::paint(ui, Rect::from_min_size(rect.min + vec2(10.0, 6.0), vec2(16.0, 16.0)), "search", 15.0, t.text_muted);
+    // CUSTOM-END
     let shortcut = crate::commands::command_shortcut_label(ui.ctx(), "view.palette");
     let shortcut = ui.painter().layout_no_wrap(shortcut, theme::regular(11.5), t.text_faint);
     let shortcut_pos = rect.right_center() - vec2(12.0 + shortcut.size().x, shortcut.size().y * 0.5);

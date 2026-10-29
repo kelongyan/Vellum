@@ -25,10 +25,12 @@ fn harness() -> Harness<'static, PdfCraftApp> {
     h
 }
 
-/// A tab, and only a tab: `mode_tab` is 48 points tall, so this skips the pane header of the same
+/// A tab, and only a tab: `mode_tab` is 48 points tall and the mode bar's own tabs are 40
+/// (CUSTOM(kelongyan): the bar was tightened to 40 pt), so this skips the pane header of the same
 /// name ("All tools" is both a mode tab and the title of the tools pane) and any menu item.
 fn tab(h: &Harness<'static, PdfCraftApp>, label: &str) -> Rect {
-    let found: Vec<Rect> = h.get_all_by_label(label).map(|node| node.rect()).filter(|r| (r.height() - 48.0).abs() < 1.0).collect();
+    let found: Vec<Rect> =
+        h.get_all_by_label(label).map(|node| node.rect()).filter(|r| (r.height() - 48.0).abs() < 1.0 || (r.height() - 40.0).abs() < 1.0).collect();
     assert_eq!(found.len(), 1, "one tab called {label:?}: {found:?}");
     found[0]
 }

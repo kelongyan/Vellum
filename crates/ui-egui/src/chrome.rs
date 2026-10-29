@@ -26,6 +26,10 @@ pub const MAC_CONTENT_LEFT: f32 = MAC_LIGHTS_LEFT + 2.0 * MAC_LIGHT_PITCH + MAC_
 const TAB_STRIP: f32 = 38.0;
 const TAB_HEIGHT: f32 = 30.0;
 const STRIP_BUTTON: f32 = 28.0;
+/// CUSTOM(kelongyan): the mode bar is 40 pt, not upstream's 48, so the two top strips read as one
+/// band (the tab strip above is 38). Its tabs, the right-hand buttons and the search field shrink
+/// to match; dialog tab rows keep their 48 pt.
+const MODE_BAR_HEIGHT: f32 = 40.0;
 
 /// Draw the window's tab strip: home and open controls, shrinkable and scrollable document tabs with drag
 /// reordering, and platform window controls.
@@ -476,7 +480,7 @@ fn tab(ui: &mut egui::Ui, spec: TabSpec<'_>, close: &mut Option<usize>) -> egui:
 pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     egui::Panel::top("mode_bar")
-        .exact_size(48.0)
+        .exact_size(MODE_BAR_HEIGHT)
         .frame(egui::Frame::NONE.fill(t.chrome).inner_margin(egui::Margin::symmetric(10, 0)).stroke(Stroke::new(1.0, t.divider)))
         .show(ui, |ui| {
             ui.horizontal_centered(|ui| {
@@ -491,18 +495,22 @@ pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 // Acrobat's mode bar has no Read tab: reading is what the viewer does with no tool
                 // in use. Read mode (the panes hidden) stays a View command and a default workspace.
                 for (mode, label) in [(Mode::AllTools, "All tools"), (Mode::Edit, "Edit"), (Mode::Convert, "Convert"), (Mode::Sign, "E-Sign")] {
-                    if widgets::mode_tab(ui, tl!(label), app.mode == mode).clicked() {
+                    // CUSTOM(kelongyan): tabs are as tall as the 40 pt bar, not upstream's 48.
+                    if widgets::mode_tab_sized(ui, tl!(label), app.mode == mode, MODE_BAR_HEIGHT).clicked() {
                         app.switch_mode(mode, true);
                     }
                 }
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     ui.spacing_mut().item_spacing.x = 4.0;
+                    // CUSTOM(kelongyan): the right-hand buttons match the 40 pt bar (28 pt, as the
+                    // tab strip's), not upstream's 32.
+                    let button = STRIP_BUTTON;
                     let has_doc = app.active.is_some();
                     ui.add_enabled_ui(has_doc, |ui| {
                         let tip = crate::commands::command_tip(ui.ctx(), tl!("Print ({key})"), "print.dialog");
                         // A document that forbids printing says so here, before the dialog (#2669).
                         let may_print = !has_doc || pdfcraft_engine::commands::command("print.dialog").is_some_and(|c| app.command_enabled(c));
-                        let mut print = ui.add_enabled_ui(may_print, |ui| icons::button(ui, "printer", 32.0, false, &tip)).inner;
+                        let mut print = ui.add_enabled_ui(may_print, |ui| icons::button(ui, "printer", button, false, &tip)).inner;
                         if !may_print {
                             print = print.on_disabled_hover_text(crate::print_refused());
                         }
@@ -510,11 +518,11 @@ pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                             app.run_command("print.dialog");
                         }
                         let tip = crate::commands::command_tip(ui.ctx(), tl!("Save ({key})"), "file.save");
-                        if icons::button(ui, "save", 32.0, false, &tip).clicked() {
+                        if icons::button(ui, "save", button, false, &tip).clicked() {
                             app.run_command("file.save");
                         }
                         let tip = crate::commands::command_tip(ui.ctx(), tl!("Document properties ({key})"), "file.properties");
-                        if icons::button(ui, "info", 32.0, false, &tip).clicked() {
+                        if icons::button(ui, "info", button, false, &tip).clicked() {
                             app.dialog = Some(Dialog::Properties(PropsTab::Description));
                         }
                     });
