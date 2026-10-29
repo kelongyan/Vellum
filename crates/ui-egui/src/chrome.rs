@@ -26,10 +26,10 @@ pub const MAC_CONTENT_LEFT: f32 = MAC_LIGHTS_LEFT + 2.0 * MAC_LIGHT_PITCH + MAC_
 const TAB_STRIP: f32 = 38.0;
 const TAB_HEIGHT: f32 = 30.0;
 const STRIP_BUTTON: f32 = 28.0;
-/// CUSTOM(kelongyan): the mode bar is 40 pt, not upstream's 48, so the two top strips read as one
-/// band (the tab strip above is 38). Its tabs, the right-hand buttons and the search field shrink
-/// to match; dialog tab rows keep their 48 pt.
-const MODE_BAR_HEIGHT: f32 = 40.0;
+/// CUSTOM(kelongyan): the mode bar is 36 pt, not upstream's 48, so the two top strips read as one
+/// compact band (the tab strip above is 38). Its tabs and the right-hand buttons shrink to match;
+/// dialog tab rows keep their 48 pt. The search field at the right end was removed on request.
+const MODE_BAR_HEIGHT: f32 = 36.0;
 
 /// Draw the window's tab strip: home and open controls, shrinkable and scrollable document tabs with drag
 /// reordering, and platform window controls.
@@ -526,10 +526,8 @@ pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                             app.dialog = Some(Dialog::Properties(PropsTab::Description));
                         }
                     });
-                    ui.add_space(8.0);
-                    if widgets::search_box(ui, tl!("Find tools and commands"), 260.0).clicked() {
-                        app.palette_open = true;
-                    }
+                    // CUSTOM(kelongyan): the search field was removed from the right end of the
+                    // mode bar; the command palette stays on Ctrl+K and in the View menu.
                 });
             });
         });

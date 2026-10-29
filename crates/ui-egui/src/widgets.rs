@@ -252,37 +252,9 @@ pub fn ghost_button_sized(ui: &mut egui::Ui, icon: &str, label: &str, height: f3
     theme::hand(resp)
 }
 
-/// A search-field lookalike that opens the command palette.
-pub fn search_box(ui: &mut egui::Ui, placeholder: &str, width: f32) -> Response {
-    let t = Tokens::get(ui.ctx());
-    // CUSTOM(kelongyan): a slimmer field for the 40 pt mode bar: 28 pt tall, radius 14, icon at 6
-    // (upstream: 32 pt, radius 16, icon at 8).
-    let (rect, resp) = ui.allocate_exact_size(vec2(width, 28.0), Sense::click());
-    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), placeholder));
-    let press = theme::Press::track(ui, &resp);
-    let fill = press.fill(t.field, t.hover, t.pressed);
-    let edge = t.border.lerp_to_gamma(t.text_muted, press.hover * 0.35);
-    ui.painter().rect(rect, CornerRadius::same(14), fill, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
-    icons::paint(ui, Rect::from_min_size(rect.min + vec2(10.0, 6.0), vec2(16.0, 16.0)), "search", 15.0, t.text_muted);
-    // CUSTOM-END
-    let shortcut = crate::commands::command_shortcut_label(ui.ctx(), "view.palette");
-    let shortcut = ui.painter().layout_no_wrap(shortcut, theme::regular(11.5), t.text_faint);
-    let shortcut_pos = rect.right_center() - vec2(12.0 + shortcut.size().x, shortcut.size().y * 0.5);
-    // Reserve the measured shortcut width in every language; long translations are elided
-    // within the remaining space rather than painted underneath the shortcut.
-    let text_right = (shortcut_pos.x - 10.0).max(rect.left());
-    let text_left = (rect.left() + 34.0).min(text_right);
-    let text_rect = Rect::from_min_max(egui::pos2(text_left, rect.top()), egui::pos2(text_right, rect.bottom()));
-    let mut job = egui::text::LayoutJob::simple_singleline(placeholder.to_owned(), theme::regular(13.0), t.text_faint);
-    job.direction = crate::bidi::ui_direction();
-    job.wrap = egui::text::TextWrapping { max_width: text_rect.width(), max_rows: 1, break_anywhere: true, ..Default::default() };
-    let text = ui.fonts_mut(|f| f.layout_job(job));
-    let elided = text.elided;
-    ui.painter().with_clip_rect(text_rect).galley(egui::pos2(text_left, rect.center().y - text.size().y * 0.5), text, t.text_faint);
-    ui.painter().with_clip_rect(rect).galley(shortcut_pos, shortcut, t.text_faint);
-    let resp = resp.on_hover_cursor(egui::CursorIcon::Text);
-    if elided { resp.on_hover_text(placeholder) } else { resp }
-}
+// CUSTOM(kelongyan): the top-bar search field was removed on request (owner, 2026-10-29); the
+// command palette stays on Ctrl+K and in the View menu. The `search_box` widget and its test went
+// with it.
 
 /// Corner radius of a checkbox's box. With the widgets' radius (`Tokens::radius`, 6) egui's 14 px
 /// box is a circle, the shape of a radio button, and View ▸ Page display has both.
@@ -753,35 +725,8 @@ mod tests {
     use super::*;
     use egui::Pos2;
 
-    #[test]
-    fn search_placeholder_never_overlaps_the_shortcut() {
-        let previous = crate::i18n::current();
-        for (code, expected) in [("en", "Ctrl+K"), ("de", "Strg+K")] {
-            crate::i18n::set_current(crate::i18n::Lang::from_code(code).unwrap());
-            for width in [260.0, 160.0, 90.0] {
-                let ctx = egui::Context::default();
-                ctx.set_os(egui::os::OperatingSystem::Nix);
-                ctx.set_fonts(theme::font_definitions());
-                let placeholder = "Werkzeuge und Befehle suchen";
-                let output = ctx.run_ui(egui::RawInput::default(), |ui| {
-                    search_box(ui, placeholder, width);
-                });
-                let text_shapes: Vec<_> = output
-                    .shapes
-                    .iter()
-                    .filter_map(|shape| if let egui::Shape::Text(text) = &shape.shape { Some((shape.clip_rect, text)) } else { None })
-                    .collect();
-                let (clip, hint) = text_shapes.iter().find(|(_, text)| text.galley.job.text == placeholder).unwrap();
-                let (_, shortcut) = text_shapes.iter().find(|(_, text)| text.galley.job.text.contains('K')).unwrap();
-                assert_eq!(shortcut.galley.job.text, expected);
-                assert!(clip.right() <= shortcut.pos.x - 9.0, "hint must leave a gap before the shortcut at width {width}");
-                assert!(hint.galley.elided, "the long original German hint must be elided at width {width}");
-                assert_eq!(hint.galley.rows.len(), 1);
-                output.drop_without_applying_deltas();
-            }
-        }
-        crate::i18n::set_current(previous);
-    }
+    // CUSTOM(kelongyan): `search_placeholder_never_overlaps_the_shortcut` went with the top-bar
+    // search field (owner, 2026-10-29).
 
     /// View ▸ Page display mixes radio buttons and checkboxes. With the theme's 6 px widget radius
     /// egui's 14 px checkbox box drew as a circle, and on the light theme an unticked box or an
