@@ -29,6 +29,9 @@ pub(crate) const APP_NAME: &str = "PdfCraft";
 const ROW_AFTER_MENUS: f32 = 480.0;
 /// The narrowest the menu bar gets: one "Menu" title.
 const MIN_MENUS_WIDTH: f32 = 80.0;
+/// CUSTOM(kelongyan): the menu titles' ink sits 2.5 pt below the row's centre; shifting the whole
+/// menu bar up by that centres it like the mode tabs, instead of leaving the two lines unaligned.
+const MENU_BAR_TEXT_DY: f32 = -2.5;
 
 /// Menu-only commands. The registry's commands keep their own ids.
 pub(crate) const CUT: &str = "edit.cut";
@@ -577,13 +580,23 @@ impl PdfCraftApp {
         // The mode tabs, search and buttons follow the bar in the same row: it takes its titles'
         // width, less when the row is short, where the menus that don't fit move into its "⋯".
         let fit = (ui.available_width() - ROW_AFTER_MENUS).max(MIN_MENUS_WIDTH);
+        // The bar's own layout centres a title's line lower than the row's centre; draw it in a
+        // child shifted up by that much, then advance the parent by the width the titles used.
+        let room = ui.available_width();
+        let height = ui.available_height();
+        let start = ui.cursor().min;
+        let mut menu_ui = ui.new_child(
+            egui::UiBuilder::new().max_rect(egui::Rect::from_min_size(start + egui::vec2(0.0, MENU_BAR_TEXT_DY), egui::vec2(room, height))),
+        );
         let chosen = craft_menu::MenuBarUi::new(&bar)
             .gate(gate)
             .label(&translate)
             .english(&english)
             .id(egui::Id::unique("pdfcraft-menu-bar"))
             .shrink_to_fit(fit)
-            .show(ui);
+            .show(&mut menu_ui);
+        let used = menu_ui.min_rect().width().min(room);
+        ui.advance_cursor_after_rect(egui::Rect::from_min_size(start, egui::vec2(used, height)));
         for command in chosen {
             self.run_menu_command(&ctx, &command);
         }

@@ -136,7 +136,7 @@ pub fn mode_tab(ui: &mut egui::Ui, label: &str, active: bool) -> Response {
     mode_tab_sized(ui, label, active, 48.0)
 }
 
-// CUSTOM(kelongyan): a mode-bar tab at its bar's height (40 pt), so the strip reads no taller
+// CUSTOM(kelongyan): a mode-bar tab at its bar's height (36 pt), so the strip reads no taller
 // than the 38 pt tab strip above it. The press well and the underline follow the same geometry;
 // dialog tab rows keep `mode_tab`'s 48 pt.
 pub(crate) fn mode_tab_sized(ui: &mut egui::Ui, label: &str, active: bool, height: f32) -> Response {

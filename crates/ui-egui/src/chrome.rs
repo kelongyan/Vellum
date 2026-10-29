@@ -495,7 +495,7 @@ pub fn mode_bar(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 // Acrobat's mode bar has no Read tab: reading is what the viewer does with no tool
                 // in use. Read mode (the panes hidden) stays a View command and a default workspace.
                 for (mode, label) in [(Mode::AllTools, "All tools"), (Mode::Edit, "Edit"), (Mode::Convert, "Convert"), (Mode::Sign, "E-Sign")] {
-                    // CUSTOM(kelongyan): tabs are as tall as the 40 pt bar, not upstream's 48.
+                    // CUSTOM(kelongyan): tabs are as tall as the 36 pt bar, not upstream's 48.
                     if widgets::mode_tab_sized(ui, tl!(label), app.mode == mode, MODE_BAR_HEIGHT).clicked() {
                         app.switch_mode(mode, true);
                     }
