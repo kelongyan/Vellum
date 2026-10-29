@@ -171,7 +171,6 @@ fn the_underline_travels_to_the_tab_you_choose() {
 /// that has always been there, so the dialog's line arrives in place instead of sliding in from the
 /// mode bar above it, and choosing in one row never moves the other.
 #[test]
-#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
 fn a_second_tab_row_holds_its_own_underline() {
     let mut h = harness();
     h.ctx.all_styles_mut(|style| style.animation_time = 0.4);
@@ -180,6 +179,9 @@ fn a_second_tab_row_holds_its_own_underline() {
     assert_eq!(settled_line(&h, mode), expected(mode), "the mode bar's line sits where it belongs");
 
     h.state_mut().dialog = Some(Dialog::Properties(PropsTab::Description));
+    // 0.15's dialog needs a measuring pass before its tabs are in the tree: the first frame
+    // lays the card out and paints nothing, so asking for a tab in it returns no node.
+    h.run_steps(2);
     // egui fades the dialog itself over the fork's clock while it is up; follow the row's left edge
     // through those passes. A position the window has never been asked about is already there, so
     // the line appears where its tab sits and never slides in from the mode bar's row above.

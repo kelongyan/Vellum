@@ -231,13 +231,17 @@ fn dialog_buttons_follow_the_content_after_a_taller_tab() {
 }
 
 #[test]
-#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
+#[ignore = "CUSTOM(kelongyan): 0.15 merge - the accessibility panel's finding rows and the dialog card geometry changed; re-base against the new structure"]
 fn page_hover_cursors_stay_off_while_a_dialog_is_open() {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(|_cc| {
         let mut app = PdfCraftApp::new();
         app.set_option("language", "en").unwrap();
         app.open_bytes("form.pdf", None, include_bytes!("../data/form.pdf").to_vec()).unwrap();
-        // Small enough that the check box sits above the dialog card.
+        // CUSTOM(kelongyan): the fork collapses the Tools pane when a document opens, which moves
+        // the page; this test measures the page against the dialog, so ask for upstream's layout.
+        app.set_option("left", "open").unwrap();
+        // Above the dialog card: 0.15's Properties card is taller than 0.14's (32-point fields)
+        // and now reaches down over the check box, so the test opens a small card instead.
         app.set_option("zoom", "100").unwrap();
         app
     });
@@ -251,7 +255,7 @@ fn page_hover_cursors_stay_off_while_a_dialog_is_open() {
     h.hover_at(check);
     h.run_steps(2);
     assert_eq!(h.output().platform_output.cursor_icon, egui::CursorIcon::PointingHand, "the check box takes clicks");
-    h.state_mut().set_option("dialog", "security").unwrap();
+    h.state_mut().set_option("dialog", "word-count").unwrap();
     h.run_steps(4);
     let card = card(&h, "dialog");
     assert!(!card.contains(check), "the check box {check:?} is beside the dialog {card:?}, under its backdrop");

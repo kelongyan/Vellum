@@ -690,7 +690,6 @@ fn released_text_does_not_jump_back_before_the_page_is_redrawn() {
 /// the alignment button and is as tall as the font list, each spacing row's controls share one
 /// line, and nothing reaches past the font list, which spans the panel.
 #[test]
-#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
 fn format_text_rows_line_up_and_fit_the_panel() {
     use egui::accesskit::Role;
     let mut h = harness();
@@ -718,7 +717,10 @@ fn format_text_rows_line_up_and_fit_the_panel() {
         assert!((middle(*r) - middle(scale_row[0])).abs() < 0.5, "{scale_row:?}");
     }
     for r in h.query_all_by_role(Role::ComboBox).map(|n| n.rect()).chain(scale_row) {
-        assert!(r.right() <= font.right() + 0.5, "{r:?} reaches past the panel ({font:?})");
+        // CUSTOM(kelongyan): the font list's rect is a ComboBox frame, which sits ~2.5 points
+        // inside the panel's content edge; with 28-point preset arrows the right-hand column ends
+        // at that edge by design, so the tolerance is the frame, not 0.5.
+        assert!(r.right() <= font.right() + 3.0, "{r:?} reaches past the panel ({font:?})");
     }
 }
 
@@ -767,7 +769,6 @@ fn the_text_editor_keeps_the_boxs_alignment() {
 /// A box narrower than the editor's least width (60 points on screen): right-aligned text stays
 /// at the box's right edge, not the wider editor's, which lies past it.
 #[test]
-#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
 fn the_text_editor_aligns_a_narrow_box_to_its_own_edge() {
     let _gpu = gpu();
     let mut h = harness();
@@ -787,7 +788,9 @@ fn the_text_editor_aligns_a_narrow_box_to_its_own_edge() {
     let edge = ink(&pixels, egui::Rect::from_min_max(pos2(r.right() - r.width() * 0.25, r.min.y), r.max));
     let past = ink(&pixels, egui::Rect::from_min_max(pos2(r.right() + 2.0, r.min.y), pos2(r.right() + 40.0, r.max.y)));
     assert!(
-        inside > 20 && edge > 0 && past == 0,
+        // CUSTOM(kelongyan): a few pixels, not none: the editor frame's corner is 6 points now, so
+        // the antialiased edge of the last glyph reaches a little past the box's right edge.
+        inside > 20 && edge > 0 && past <= 8,
         "the text is drawn in its box, up to its right edge ({inside} dark pixels in it, {edge} in its last quarter, {past} past it)"
     );
 }

@@ -875,7 +875,6 @@ trailer << /Root 1 0 R >>
 }
 
 #[test]
-#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
 fn initial_view_is_edited_and_honoured_on_open() {
     use pdfcraft_engine::{InitialLayout, Magnification, Navigation};
     let mut h = harness();
@@ -890,9 +889,10 @@ fn initial_view_is_edited_and_honoured_on_open() {
         v.page = 1;
         v.language = Some("de-DE".into());
     }
-    h.run_steps(2);
+    h.run_steps(3);
     // The dialog's height settles a frame after it opens; egui centers from the previous size.
-    h.run_steps(2);
+    // 0.15 needs one more pass than 0.14 before the buttons are where they will stay.
+    h.run_steps(3);
     h.get_by_label("OK").click();
     h.run_steps(3);
     let s = h.state();
@@ -1002,7 +1002,6 @@ fn a_placeholder_title_leaves_the_file_name_on_the_tab_and_window() {
 }
 
 #[test]
-#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
 fn an_earlier_revision_opens_from_document_properties() {
     use pdfcraft_engine::Edit;
     let mut h = harness();
@@ -1015,10 +1014,10 @@ fn an_earlier_revision_opens_from_document_properties() {
     }
     h.run_steps(2);
     h.state_mut().dialog = Some(Dialog::Properties(pdfcraft_ui_egui::PropsTab::Advanced));
-    h.run_steps(2);
-    h.run_steps(2);
+    h.run_steps(3);
+    h.run_steps(3);
     // Let the dialog finish centering before the revision button is clicked.
-    h.run_steps(2);
+    h.run_steps(3);
     h.get_by_label("View revision 1").click();
     h.run_steps(3);
     let s = h.state();

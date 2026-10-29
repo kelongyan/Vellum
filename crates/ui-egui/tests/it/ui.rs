@@ -1737,7 +1737,6 @@ fn the_edit_panel_keeps_the_add_update_remove_menu() {
 /// #3282: in a short window the rail's panel buttons scroll above the page navigation instead of
 /// being drawn under the page number field.
 #[test]
-#[ignore = "CUSTOM(kelongyan): 0.15 merge - this assertion measures upstream layout; the fork Home, collapsed Tools pane and 32-point controls need re-basing"]
 fn short_window_rail_buttons_scroll_clear_of_page_navigation() {
     let (width, height) = (1000.0, 560.0);
     let mut h = Harness::builder().with_size(egui::vec2(width, height)).build_eframe(|_cc| {
