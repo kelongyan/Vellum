@@ -51,6 +51,9 @@ pub struct Tokens {
     pub pasteboard: Color32,
     pub card: Color32,
     pub border: Color32,
+    /// CUSTOM(kelongyan): a border that has to read as a boundary rather than a hint - fields,
+    /// cards, floating notices. `border` stays light because it separates large calm surfaces.
+    pub border_strong: Color32,
     pub divider: Color32,
     pub text: Color32,
     pub text_muted: Color32,
@@ -62,6 +65,10 @@ pub struct Tokens {
     pub accent: Color32,
     pub accent_text: Color32,
     pub accent_soft: Color32,
+    /// CUSTOM(kelongyan): the accent as a solid button's fill, as opposed to text and strokes.
+    /// The dark theme's `accent` is tuned to read on a dark panel; used as a fill under white
+    /// text it only reaches 3.3:1, so a solid button takes this deeper tone (5.3:1) instead.
+    pub accent_fill: Color32,
     pub field: Color32,
     pub badge_new: Color32,
     pub page_shadow: Color32,
@@ -79,6 +86,7 @@ impl Tokens {
                 pasteboard: Color32::from_rgb(0xF1, 0xF1, 0xF3),
                 card: Color32::from_rgb(0xFF, 0xFF, 0xFF),
                 border: Color32::from_rgb(0xDA, 0xDA, 0xDE),
+                border_strong: Color32::from_rgb(0xC4, 0xC4, 0xCA),
                 divider: Color32::from_rgb(0xE8, 0xE8, 0xEB),
                 text: Color32::from_rgb(0x22, 0x22, 0x26),
                 text_muted: Color32::from_rgb(0x5E, 0x5E, 0x66),
@@ -90,6 +98,7 @@ impl Tokens {
                 accent: Color32::from_rgb(0x1B, 0x63, 0xE0),
                 accent_text: Color32::from_rgb(0x17, 0x55, 0xC4),
                 accent_soft: Color32::from_rgb(0xE3, 0xEC, 0xFD),
+                accent_fill: Color32::from_rgb(0x1B, 0x63, 0xE0),
                 field: Color32::from_rgb(0xFF, 0xFF, 0xFF),
                 badge_new: Color32::from_rgb(0x1B, 0x63, 0xE0),
                 page_shadow: Color32::from_black_alpha(34),
@@ -103,6 +112,7 @@ impl Tokens {
                 pasteboard: Color32::from_rgb(0x19, 0x19, 0x1C),
                 card: Color32::from_rgb(0x2E, 0x2E, 0x33),
                 border: Color32::from_rgb(0x3C, 0x3C, 0x43),
+                border_strong: Color32::from_rgb(0x52, 0x52, 0x5B),
                 divider: Color32::from_rgb(0x33, 0x33, 0x39),
                 text: Color32::from_rgb(0xEC, 0xEC, 0xEF),
                 text_muted: Color32::from_rgb(0xAE, 0xAE, 0xB6),
@@ -110,10 +120,11 @@ impl Tokens {
                 icon: Color32::from_rgb(0xD4, 0xD4, 0xDA),
                 hover: Color32::from_rgb(0x34, 0x34, 0x3A),
                 pressed: Color32::from_rgb(0x3E, 0x3E, 0x45),
-                selected: Color32::from_rgb(0x23, 0x3A, 0x63),
+                selected: Color32::from_rgb(0x2E, 0x4C, 0x7D),
                 accent: Color32::from_rgb(0x4B, 0x8B, 0xF5),
                 accent_text: Color32::from_rgb(0x8C, 0xB6, 0xFA),
                 accent_soft: Color32::from_rgb(0x24, 0x36, 0x57),
+                accent_fill: Color32::from_rgb(0x2A, 0x66, 0xD6),
                 field: Color32::from_rgb(0x1E, 0x1E, 0x22),
                 badge_new: Color32::from_rgb(0x3D, 0x7D, 0xEE),
                 page_shadow: Color32::from_black_alpha(120),
@@ -486,7 +497,11 @@ pub fn apply(ctx: &egui::Context, kind: ThemeKind) {
         // Labels still get their paragraph direction explicitly from `bidi::ui_direction`.
         s.right_to_left = rtl;
         s.spacing.item_spacing = egui::vec2(8.0, 6.0);
-        s.spacing.button_padding = egui::vec2(10.0, 5.0);
+        s.spacing.button_padding = egui::vec2(12.0, 6.0);
+        // CUSTOM(kelongyan): the control floor is raised in `begin_dialog`/`begin_panel`, not
+        // globally. `craft-menu` derives a menu's width from `interact_size.y` (12x), so a global
+        // 32 would widen every menu to 384 points; panels and dialogs are where the small targets
+        // actually were.
         s.spacing.menu_margin = egui::Margin::same(6);
         s.spacing.scroll.bar_width = 8.0;
         s.spacing.scroll.floating = true;
