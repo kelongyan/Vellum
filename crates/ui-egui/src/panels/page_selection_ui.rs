@@ -90,11 +90,7 @@ impl PageSelectionInput {
             let label = tl!("Selected pages");
             let width = (ui.available_width() - 32.0).max(40.0);
             let field = ui.add(
-                crate::widgets::line(&mut self.text)
-                    .id(id)
-                    .desired_width(width)
-                    .char_limit(16_384)
-                    .hint_text(current.saturating_add(1).to_string()),
+                crate::widgets::line(&mut self.text).id(id).desired_width(width).char_limit(16_384).hint_text(current.saturating_add(1).to_string()),
             );
             field.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, ui.is_enabled(), label));
             commit = ui.is_enabled() && !cancel && field.lost_focus();
