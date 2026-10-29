@@ -567,7 +567,7 @@ pub fn right_rail(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
             // Page navigation cluster at the bottom, a panel of its own so that in a short
             // window the buttons above scroll instead of running into it (#3282).
             ui.with_layout(Layout::bottom_up(Align::Center), |ui| {
-                ui.spacing_mut().item_spacing.y = 2.0;
+                ui.spacing_mut().item_spacing.y = 4.0;
                 let tip = crate::commands::key_tip(ui.ctx(), tl!("Zoom out ({key})"), crate::commands::ZOOM_OUT);
                 if icons::button(ui, "zoom-out", 32.0, false, &tip).clicked() {
                     view.zoom_step(false);
@@ -600,12 +600,23 @@ pub fn right_rail(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 let mut typed = ui.data(|d| d.get_temp::<String>(draft)).unwrap_or_else(|| format!("{:.0}%", view.zoom * 100.0));
                 let edit = egui::TextEdit::singleline(&mut typed)
                     .id(id)
-                    .desired_width(40.0)
+                    .desired_width(36.0)
                     .align(egui::Align2::CENTER_TOP)
+                    // 11, not 12: at 36 points wide minus the frame's inset a four-character
+                    // "235%" is clipped at 12. The page box next door holds a single number and
+                    // keeps 12.5.
                     .font(theme::medium(11.0))
-                    .text_color(t.text_muted)
-                    .frame(egui::Frame::NONE)
-                    .margin(vec2(2.0, 2.0));
+                    .text_color(t.text)
+                    // CUSTOM(kelongyan): the zoom box used to be a borderless 11-point label that
+                    // happened to accept typing. It gets the same field outline as every other
+                    // input, so it reads as editable before the pointer arrives.
+                    .frame(
+                        egui::Frame::new()
+                            .fill(t.field)
+                            .stroke(Stroke::new(1.0, t.border_strong))
+                            .corner_radius(CornerRadius::same(6))
+                            .inner_margin(egui::Margin::symmetric(2, 6)),
+                    );
                 let r = ui.add(edit).on_hover_text(tl!("Zoom — type a percentage and press Enter"));
                 ui.ctx().accesskit_node_builder(id, |node| node.set_label(tl!("Zoom")));
                 if r.gained_focus() {
@@ -625,11 +636,15 @@ pub fn right_rail(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                         view.set_zoom(zoom);
                     }
                 }
-                ui.add_space(6.0);
-                if icons::button(ui, "chevron-down", 30.0, false, tl!("Next page")).clicked() {
+                // CUSTOM(kelongyan): three groups - view, navigation, page - separated by a rule,
+                // instead of one eleven-button stack with two points between everything.
+                ui.add_space(4.0);
+                ui.separator();
+                ui.add_space(2.0);
+                if icons::button(ui, "chevron-down", 32.0, false, tl!("Next page")).clicked() {
                     view.step_page(true);
                 }
-                if icons::button(ui, "chevron-up", 30.0, false, tl!("Previous page")).clicked() {
+                if icons::button(ui, "chevron-up", 32.0, false, tl!("Previous page")).clicked() {
                     view.step_page(false);
                 }
                 // History is distinct from stepping to the adjacent page, and belongs to this tab.
@@ -638,14 +653,22 @@ pub fn right_rail(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     (false, "chevron-left", tl!("Previous view"), crate::commands::PREV_VIEW, !view.back.is_empty()),
                 ] {
                     let tip = format!("{label} ({})", crate::commands::shortcut_label(ui.ctx(), shortcut));
-                    if ui.add_enabled_ui(enabled, |ui| icons::button(ui, icon, 30.0, false, &tip)).inner.clicked() {
+                    if ui.add_enabled_ui(enabled, |ui| icons::button(ui, icon, 28.0, false, &tip)).inner.clicked() {
                         view.view_history(forward);
                     }
                 }
                 let font = theme::regular(11.0);
+                ui.add_space(2.0);
+                ui.separator();
+                ui.add_space(2.0);
                 let mut position = page_position(view.current, page_count, labels.get(view.current).map_or("", String::as_str));
+                // CUSTOM(kelongyan): a bare "2" under the page box read as a second page number.
+                // The count is shown as "/ 2" so the two lines say "current page / total".
+                if position.chars().all(|c| c.is_ascii_digit()) {
+                    position = format!("/ {position}");
+                }
                 if widgets::text_width(ui, &position, &font) > ui.available_width() {
-                    position = page_count.to_string();
+                    position = format!("/ {page_count}");
                 }
                 // Out of range (an empty document), like `page_position`: "Page 0 of 0", never past the end.
                 let shown = if view.current < page_count { view.current + 1 } else { page_count };
@@ -666,14 +689,14 @@ pub fn right_rail(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 }
                 let edit = egui::TextEdit::singleline(&mut view.page_input)
                     .id(page_input_id)
-                    .desired_width(34.0)
+                    .desired_width(36.0)
                     .align(egui::Align2::CENTER_TOP)
-                    .font(theme::medium(12.0))
-                    .margin(vec2(2.0, 4.0));
+                    .font(theme::medium(12.5))
+                    .margin(vec2(2.0, 5.0));
                 let r = egui::Frame::NONE
                     .fill(t.field)
-                    .stroke(Stroke::new(1.0, t.border))
-                    .corner_radius(CornerRadius::same(5))
+                    .stroke(Stroke::new(1.0, t.border_strong))
+                    .corner_radius(CornerRadius::same(6))
                     .show(ui, |ui| ui.add(edit))
                     .inner
                     .on_hover_text(tl!("Current page — type a page number or label (such as iv) and press Enter"))

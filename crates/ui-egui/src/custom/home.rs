@@ -14,9 +14,13 @@ use crate::{PdfCraftApp, icons, widgets};
 
 /// Card metrics of the grid.
 const CARD_W: f32 = 170.0;
-const CARD_GAP: f32 = 22.0;
+const CARD_GAP: f32 = 24.0;
 const FOLDER_CARD_H: f32 = 160.0;
-const DOC_CARD_H: f32 = 212.0;
+const DOC_CARD_H: f32 = 232.0;
+/// The cover fills the card's width bar a 15-point margin, so the card reads as the page rather
+/// than a frame around a small sheet: 170 - 2 * 15.
+const COVER_W: f32 = 140.0;
+const COVER_H: f32 = 176.0;
 /// Home stays this wide and centered on a large window, so the page keeps one calm column.
 const CONTENT_WIDTH: f32 = 1040.0;
 
@@ -174,7 +178,7 @@ fn run_dialog(ctx: &egui::Context, t: &Tokens, dialog: Option<&HomeDialog>) -> O
         let title_label = ui.label(egui::RichText::new(title).font(theme::semibold(14.0)).color(t.text));
         ui.add_space(10.0);
         let mut text = ui.data_mut(|d| d.get_temp::<String>(text_id).unwrap_or_default());
-        let resp = ui.add(egui::TextEdit::singleline(&mut text).desired_width(240.0).hint_text(tl!("Name"))).labelled_by(title_label.id);
+        let resp = ui.add(widgets::line(&mut text).desired_width(240.0).hint_text(tl!("Name"))).labelled_by(title_label.id);
         // Focus the field while nothing else has focus: on open, and after clicking a button.
         if ui.memory(|m| m.focused().is_none()) {
             resp.request_focus();
@@ -206,7 +210,7 @@ fn run_dialog(ctx: &egui::Context, t: &Tokens, dialog: Option<&HomeDialog>) -> O
 
 fn heading_row(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, actions: &mut CardActions) {
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new(tl!("Documents")).font(theme::semibold(28.0)).color(t.text));
+        ui.label(egui::RichText::new(tl!("Documents")).font(theme::semibold(24.0)).color(t.text));
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if pill(ui, t, "folder-plus", tl!("New folder"), true) {
                 actions.open_dialog = Some(HomeDialog::NewFolder);
@@ -354,7 +358,7 @@ fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, 
     let press = theme::Press::track(ui, &resp);
     press.wash(ui, rect, 10, false);
     let lift = press.hover * -2.0;
-    let cover = Rect::from_min_size(egui::pos2(rect.center().x - 56.0, rect.top() + 2.0 + lift), vec2(112.0, 142.0));
+    let cover = Rect::from_min_size(egui::pos2(rect.center().x - COVER_W / 2.0, rect.top() + 2.0 + lift), vec2(COVER_W, COVER_H));
     let thumbnail = if doc.missing { None } else { app.thumbnails.texture(ui.ctx(), &doc.path) };
     match thumbnail {
         Some(texture) => {
@@ -386,13 +390,13 @@ fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, 
     } else {
         ago_of(doc.added)
     };
-    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 160.0), &doc.name, theme::medium(13.5), t.text);
+    centered_elided(ui, t, egui::pos2(rect.center().x, rect.top() + 196.0), &doc.name, theme::medium(15.0), t.text);
     centered_elided(
         ui,
         t,
-        egui::pos2(rect.center().x, rect.top() + 181.0),
+        egui::pos2(rect.center().x, rect.top() + 217.0),
         &meta,
-        theme::regular(11.5),
+        theme::regular(12.0),
         if doc.missing { t.text_muted } else { t.text_faint },
     );
     if resp.clicked() {

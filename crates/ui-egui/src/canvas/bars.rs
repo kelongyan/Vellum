@@ -249,9 +249,11 @@ pub(super) fn notices(
 /// buttons are centred on a row of button height, and the message's first line is centred on
 /// the same row; a wrapped message grows the bar downwards.
 fn notice_bar(ui: &mut egui::Ui, t: &Tokens, icon: &str, icon_color: Color32, text: String, buttons: impl FnOnce(&mut egui::Ui)) {
-    const ROW: f32 = 28.0;
+    const ROW: f32 = 32.0;
     const ICON: f32 = 16.0;
-    egui::Frame::NONE.fill(t.accent_soft).inner_margin(egui::Margin::symmetric(14, 7)).show(ui, |ui| {
+    // CUSTOM(kelongyan): a notice is a card with an accent edge, not a full-width blue band. The
+    // band sat directly under the mode bar and out-weighed the page it was describing.
+    egui::Frame::NONE.fill(t.card).inner_margin(egui::Margin::symmetric(14, 7)).show(ui, |ui| {
         let width = ui.available_width();
         ui.allocate_ui_with_layout(vec2(width, ROW), egui::Layout::right_to_left(egui::Align::Center), |ui| {
             ui.set_min_height(ROW);
@@ -270,6 +272,9 @@ fn notice_bar(ui: &mut egui::Ui, t: &Tokens, icon: &str, icon_color: Color32, te
                 });
             });
         });
+        // The accent edge, painted last so the row cannot cover it.
+        let bar = ui.max_rect().expand2(vec2(14.0, 7.0));
+        ui.painter().rect_filled(Rect::from_min_size(bar.min, vec2(3.0, bar.height())), 0, t.accent);
     });
 }
 
