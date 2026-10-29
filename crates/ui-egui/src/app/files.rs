@@ -323,13 +323,18 @@ impl PdfCraftApp {
             macos_association::repair(std::path::Path::new(&p));
             self.recent.retain(|r| r.path != p);
             // CUSTOM(kelongyan): Home lists what the user imported, not everything ever opened.
-            // A file chosen with Import is remembered; any other open only refreshes an entry the
-            // library already holds, so closing the app does not leave the PDF on Home.
+            // A file chosen with Import is remembered, in the folder Home was showing; any other
+            // open only refreshes an entry the library already holds, so closing the app does not
+            // leave the PDF on Home.
             let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
-            match self.import_pending.iter().position(|q| *q == p) {
+            match self.import_pending.iter().position(|q| q.0 == p) {
                 Some(i) => {
-                    self.import_pending.remove(i);
+                    let (_, folder) = self.import_pending.remove(i);
                     self.library.remember(&p, name, pages, size, now);
+                    // A folder deleted while the picker was open falls back to the top level.
+                    if folder.is_some() {
+                        self.library.move_doc(&p, folder);
+                    }
                 }
                 None => self.library.refresh(&p, name, pages, size),
             }
@@ -660,14 +665,18 @@ impl PdfCraftApp {
     }
 
     /// Home ▸ Import: choose a PDF and keep it in the document library. Unlike File ▸ Open, the
-    /// document stays on Home after the app closes.
-    pub fn import_pdf_dialog(&mut self) {
+    /// document stays on Home after the app closes; `folder` is the folder Home was showing, so a
+    /// file imported inside a folder lands in it.
+    pub fn import_pdf_dialog(&mut self, folder: Option<u64>) {
         self.startup_superseded = true;
         #[cfg(not(target_arch = "wasm32"))]
-        self.pick(pickers::PickFor::Import, rfd::AsyncFileDialog::new().add_filter("PDF", &["pdf"]), true);
+        self.pick(pickers::PickFor::Import(folder), rfd::AsyncFileDialog::new().add_filter("PDF", &["pdf"]), true);
         // The web build has no file paths to remember, so importing is opening there.
         #[cfg(target_arch = "wasm32")]
-        self.open_dialog();
+        {
+            let _ = folder;
+            self.open_dialog();
+        }
     }
 
     pub fn close_tab(&mut self, index: usize) {

@@ -9,6 +9,7 @@ use std::time::{Duration, UNIX_EPOCH};
 use egui::{Align2, Color32, CornerRadius, Rect, Sense, Stroke, vec2};
 
 use crate::custom::library::{FOLDER_PALETTE, LibraryDoc, LibraryFolder};
+use crate::custom::tempo;
 use crate::theme::{self, Tokens};
 use crate::{PdfCraftApp, icons, widgets};
 
@@ -37,6 +38,27 @@ const DIALOG_ID: &str = "custom-home-dialog";
 const DIALOG_TEXT_ID: &str = "custom-home-dialog-text";
 /// Which folder is open; `None` (or a stale id) means the "All" top level.
 const OPEN_FOLDER_ID: &str = "custom-home-open-folder";
+/// Multi-select: whether cards select instead of open, and which documents are picked.
+const SELECT_MODE_ID: &str = "custom-home-select-mode";
+const SELECTED_ID: &str = "custom-home-selected";
+
+/// What a Home document card hands to a folder card while it is dragged: the card's references
+/// stay put, so a drop only files the document.
+struct DocDrag {
+    path: String,
+}
+
+fn select_mode(ui: &egui::Ui) -> bool {
+    ui.data(|d| d.get_temp::<bool>(egui::Id::unique(SELECT_MODE_ID))).unwrap_or(false)
+}
+
+fn selected_paths(ui: &egui::Ui) -> Vec<String> {
+    ui.data(|d| d.get_temp::<Vec<String>>(egui::Id::unique(SELECTED_ID))).unwrap_or_default()
+}
+
+fn set_selected(ui: &egui::Ui, paths: Vec<String>) {
+    ui.data_mut(|d| d.insert_temp(egui::Id::unique(SELECTED_ID), paths));
+}
 
 #[derive(Clone, PartialEq)]
 enum HomeDialog {
@@ -56,6 +78,9 @@ struct CardActions {
     move_doc: Option<(String, Option<u64>)>,
     remove_doc: Option<String>,
     relocate_doc: Option<String>,
+    toggle_select: Option<String>,
+    move_selected: Option<Option<u64>>,
+    remove_selected: bool,
     open_dialog: Option<HomeDialog>,
 }
 
@@ -77,7 +102,7 @@ pub(crate) fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 ui.add_space(side);
                 ui.vertical(|ui| {
                     ui.set_width(width);
-                    heading_row(app, ui, &t, &mut actions);
+                    heading_row(app, ui, &t, open_folder, &mut actions);
                     crumb_row(app, ui, &t, open_folder, &mut actions);
                     library_grid(app, ui, &t, open_folder, &mut actions);
                 });
@@ -142,6 +167,30 @@ fn apply_actions(app: &mut PdfCraftApp, ui: &mut egui::Ui, actions: CardActions)
     }
     if let Some(path) = actions.remove_doc {
         app.library.remove_doc(&path);
+    }
+    if let Some(path) = actions.toggle_select {
+        let mut picked = selected_paths(ui);
+        match picked.iter().position(|p| *p == path) {
+            Some(i) => {
+                picked.remove(i);
+            }
+            None => picked.push(path),
+        }
+        set_selected(ui, picked);
+    }
+    if let Some(folder) = actions.move_selected {
+        let picked = selected_paths(ui);
+        for path in &picked {
+            app.library.move_doc(path, folder);
+        }
+        set_selected(ui, Vec::new());
+    }
+    if actions.remove_selected {
+        let picked = selected_paths(ui);
+        for path in &picked {
+            app.library.remove_doc(path);
+        }
+        set_selected(ui, Vec::new());
     }
     if let Some(path) = actions.open_doc {
         #[cfg(not(target_arch = "wasm32"))]
@@ -217,19 +266,69 @@ fn run_dialog(ctx: &egui::Context, t: &Tokens, dialog: Option<&HomeDialog>) -> O
     done
 }
 
-fn heading_row(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, actions: &mut CardActions) {
+fn heading_row(app: &mut PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, open_folder: Option<u64>, actions: &mut CardActions) {
+    let mut selecting = select_mode(ui);
+    let selected = selected_paths(ui);
     ui.horizontal(|ui| {
-        ui.label(egui::RichText::new(tl!("Documents")).font(theme::semibold(24.0)).color(t.text));
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if pill(ui, t, "folder-plus", tl!("New folder"), true) {
-                actions.open_dialog = Some(HomeDialog::NewFolder);
-            }
-            ui.add_space(10.0);
-            if pill(ui, t, "file-plus", tl!("Import…"), false) {
-                app.import_pdf_dialog();
-            }
-        });
+        if selecting {
+            // Selecting replaces the shelf's own actions with the ones that act on the picks, so
+            // the row never carries both at once and stays one line tall.
+            let title = if selected.is_empty() {
+                tl!("Select documents").to_string()
+            } else {
+                crate::i18n::fmt(tl!("{n} selected"), &[("n", &selected.len().to_string())])
+            };
+            ui.label(egui::RichText::new(title).font(theme::semibold(24.0)).color(t.text));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if icons::button(ui, "x", 28.0, false, tl!("Done")).clicked() {
+                    selecting = false;
+                }
+                ui.add_enabled_ui(!selected.is_empty(), |ui| {
+                    if icons::button(ui, "trash-2", 28.0, false, tl!("Remove from Documents")).clicked() {
+                        actions.remove_selected = true;
+                    }
+                    let move_btn = icons::button(ui, "move", 28.0, false, tl!("Move to folder…"));
+                    egui::Popup::menu(&move_btn).show(|ui| {
+                        if ui.button(tl!("All")).clicked() {
+                            actions.move_selected = Some(None);
+                            ui.close();
+                        }
+                        for folder in app.library.folders() {
+                            if ui.button(folder.name.as_str()).clicked() {
+                                actions.move_selected = Some(Some(folder.id));
+                                ui.close();
+                            }
+                        }
+                    });
+                });
+                if icons::button(ui, "check", 28.0, false, tl!("Select all")).clicked() {
+                    let all = app.library.docs_in(open_folder).map(|d| d.path.clone()).collect();
+                    set_selected(ui, all);
+                }
+            });
+        } else {
+            ui.label(egui::RichText::new(tl!("Documents")).font(theme::semibold(24.0)).color(t.text));
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                if pill(ui, t, "folder-plus", tl!("New folder"), true) {
+                    actions.open_dialog = Some(HomeDialog::NewFolder);
+                }
+                ui.add_space(10.0);
+                if pill(ui, t, "file-plus", tl!("Import…"), false) {
+                    app.import_pdf_dialog(open_folder);
+                }
+                ui.add_space(2.0);
+                if icons::button(ui, "list-checks", 28.0, false, tl!("Select multiple")).clicked() {
+                    selecting = true;
+                }
+            });
+        }
     });
+    if selecting != select_mode(ui) {
+        ui.data_mut(|d| d.insert_temp(egui::Id::unique(SELECT_MODE_ID), selecting));
+        if !selecting {
+            set_selected(ui, Vec::new());
+        }
+    }
 }
 
 fn crumb_row(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, open_folder: Option<u64>, actions: &mut CardActions) {
@@ -278,13 +377,15 @@ fn library_grid(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, open_folder: O
         return;
     }
     let cols = (((ui.available_width() + CARD_GAP) / (CARD_W + CARD_GAP)).floor() as usize).max(1);
+    let selecting = select_mode(ui);
+    let selected = selected_paths(ui);
     let items: Vec<GridItem<'_>> = folder_items.into_iter().map(GridItem::Folder).chain(doc_items.into_iter().map(GridItem::Doc)).collect();
     for row in items.chunks(cols) {
         ui.horizontal_top(|ui| {
             for item in row {
                 match item {
                     GridItem::Folder(folder) => folder_card(app, ui, t, folder, actions),
-                    GridItem::Doc(doc) => doc_card(app, ui, t, doc, actions),
+                    GridItem::Doc(doc) => doc_card(app, ui, t, doc, actions, selecting, selected.contains(&doc.path)),
                 }
                 ui.add_space(CARD_GAP);
             }
@@ -305,8 +406,12 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &folder.name));
     let press = theme::Press::track(ui, &resp);
     press.wash(ui, rect, 10, false);
-    // The folder floats up while hovered.
-    let lift = press.hover * -2.0;
+    // A document dragged over the folder makes it rise and shows the accent outline; both ease
+    // with the pointer on the micro rung, so crossing a folder never flashes it.
+    let over = resp.dnd_hover_payload::<DocDrag>().is_some();
+    let hot = tempo::switch(ui.ctx(), resp.id.with("drop-target"), over, tempo::MICRO);
+    // The folder floats up while hovered, and a little more under a document about to land.
+    let lift = press.hover * -2.0 - 2.0 * hot;
     // One silhouette on the cover's own baseline: a tab standing on a body, the tab a shade deeper
     // (the folder's back) and the body paler (its front panel), so the glyph keeps its depth without
     // a second colour. The body's top-left corner is square so the tab's left edge runs straight
@@ -318,7 +423,7 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     let body = Rect::from_min_size(egui::pos2(left, top + TAB_H), vec2(FOLDER_W, FOLDER_H));
     // A soft shadow lets the folder sit on the page rather than being pasted onto it; the hairline
     // keeps the outline crisp where the tint comes close to the pasteboard.
-    let shadow = (0.55 + press.hover * 0.35).min(1.0);
+    let shadow = (0.55 + press.hover * 0.35 + hot * 0.25).min(1.0);
     ui.painter().add(
         egui::Shadow { offset: [0, 4], blur: 14, spread: 0, color: t.page_shadow.gamma_multiply(shadow) }
             .as_shape(body, CornerRadius { nw: 0, ne: 16, sw: 16, se: 16 }),
@@ -329,6 +434,19 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     let tab = Rect::from_min_size(egui::pos2(left, body.top() - TAB_H), vec2(TAB_W, TAB_H + 2.0));
     ui.painter().rect(tab, CornerRadius { nw: 8, ne: 8, sw: 0, se: 0 }, back, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
     ui.painter().rect(body, CornerRadius { nw: 0, ne: 16, sw: 16, se: 16 }, front, Stroke::new(1.0, edge), egui::StrokeKind::Inside);
+    // A document dragged over the folder is dropped into it: the whole card is the target, and the
+    // accent outline fades in while the pointer is over it.
+    if hot > 0.001 {
+        ui.painter().rect_stroke(
+            body.expand(3.0),
+            CornerRadius { nw: 4, ne: 18, sw: 18, se: 18 },
+            Stroke::new(2.0, t.accent.gamma_multiply(hot)),
+            egui::StrokeKind::Outside,
+        );
+    }
+    if let Some(drag) = resp.dnd_release_payload::<DocDrag>() {
+        actions.move_doc = Some((drag.path.clone(), Some(folder.id)));
+    }
     // The star sits on the folder's top right; it appears when starred or hovered.
     let star_rect = Rect::from_center_size(egui::pos2(body.right() - 20.0, body.top() + 20.0), vec2(26.0, 26.0));
     let star = ui.interact(star_rect, ui.scope_id().with(("lib-star", folder.id)), Sense::click());
@@ -359,8 +477,11 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     let palette_open = palette.is_open();
     // `dot.hovered` and `dot.has_focus` count: the dot takes the hover from the card the moment
     // the pointer reaches it (and a keyboard visitor never hovers at all), and without them the
-    // button would be invisible under the pointer or while Tab has it.
-    if press.hover > 0.01 || dot.hovered() || dot.has_focus() || palette_open {
+    // button would be invisible under the pointer or while Tab has it. `corner` is the pointer in
+    // the folder's bottom-right corner: the button is a corner affordance, so hovering anywhere
+    // else on the card leaves the folder face clean.
+    let corner = Rect::from_center_size(dot_rect.center(), vec2(44.0, 44.0));
+    if ui.rect_contains_pointer(corner) || dot.hovered() || dot.has_focus() || palette_open {
         let center = dot_rect.center();
         let radius = 7.0 + if dot.hovered() { 0.5 } else { 0.0 };
         ui.painter().circle_filled(center, radius, swatch_fill(t, folder.color));
@@ -401,14 +522,15 @@ fn folder_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, folder: &Librar
     });
 }
 
-fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, actions: &mut CardActions) {
-    let (rect, resp) = ui.allocate_exact_size(vec2(CARD_W, DOC_CARD_H), Sense::click());
+fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, actions: &mut CardActions, selecting: bool, selected: bool) {
+    let (rect, resp) = ui.allocate_exact_size(vec2(CARD_W, DOC_CARD_H), Sense::click_and_drag());
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &doc.name));
     let press = theme::Press::track(ui, &resp);
-    press.wash(ui, rect, 10, false);
+    press.wash(ui, rect, 10, selected);
     let lift = press.hover * -2.0;
     let cover = Rect::from_min_size(egui::pos2(rect.center().x - COVER_W / 2.0, rect.top() + 2.0 + lift), vec2(COVER_W, COVER_H));
     let thumbnail = if doc.missing { None } else { app.thumbnails.texture(ui.ctx(), &doc.path) };
+    let thumb = thumbnail.as_ref().map(|t| (t.id(), t.size_vec2()));
     match thumbnail {
         Some(texture) => {
             // The page's own paper is the cover: fitted whole, with a soft shadow and a hairline.
@@ -448,8 +570,47 @@ fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, 
         theme::regular(12.0),
         if doc.missing { t.text_muted } else { t.text_faint },
     );
+    if selecting {
+        // The pick ring sits on the sheet's top-left corner, the same place a file manager puts a
+        // checkbox; the whole card toggles it, so the target is never a 18-point dot.
+        let center = egui::pos2(cover.left() + 12.0, cover.top() + 12.0);
+        ui.painter().circle_filled(center, 9.0, if selected { t.accent } else { t.card });
+        ui.painter().circle_stroke(center, 9.0, Stroke::new(1.0, if selected { t.accent } else { t.border_strong }));
+        if selected {
+            icons::paint(ui, Rect::from_center_size(center, vec2(10.0, 10.0)), "check", 10.0, Color32::WHITE);
+        }
+    } else {
+        // A card dragged onto a folder moves the document there; nothing is copied or deleted.
+        resp.dnd_set_drag_payload(DocDrag { path: doc.path.clone() });
+        if resp.dragged() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+        }
+    }
+    // Drag feedback: the page lifts out of the shelf as a ghost that follows the pointer on the
+    // eased ladder (a short glide, never a snap), while the card left behind dims toward the
+    // pasteboard. Both fade with the drag, so a release settles instead of blinking out.
+    let dragging = !selecting && resp.dragged();
+    let fade = tempo::switch(ui.ctx(), resp.id.with("drag-fade"), dragging, tempo::MICRO);
+    let ghost_id = resp.id.with("drag-ghost");
+    if dragging {
+        let target = ui.ctx().pointer_interact_pos().unwrap_or(cover.center());
+        let at = egui::pos2(
+            tempo::track(ui.ctx(), resp.id.with("drag-x"), target.x, tempo::SLIDE),
+            tempo::track(ui.ctx(), resp.id.with("drag-y"), target.y, tempo::SLIDE),
+        );
+        ui.data_mut(|d| d.insert_temp(ghost_id, at));
+    }
+    if fade > 0.001 {
+        let at = ui.data(|d| d.get_temp::<egui::Pos2>(ghost_id)).unwrap_or(cover.center());
+        ui.painter().rect_filled(rect, 12, t.pasteboard.gamma_multiply(0.55 * fade));
+        paint_drag_ghost(ui.ctx(), t, at, cover.size(), thumb, fade);
+    }
     if resp.clicked() {
-        actions.open_doc = Some(doc.path.clone());
+        if selecting {
+            actions.toggle_select = Some(doc.path.clone());
+        } else {
+            actions.open_doc = Some(doc.path.clone());
+        }
     }
     resp.on_hover_text(&doc.path).context_menu(|ui| {
         ui.menu_button(tl!("Move to folder…"), |ui| {
@@ -474,6 +635,36 @@ fn doc_card(app: &PdfCraftApp, ui: &mut egui::Ui, t: &Tokens, doc: &LibraryDoc, 
             ui.close();
         }
     });
+}
+
+/// The page a drag carries: the cover's own paper with a soft shadow, drawn on the tooltip layer
+/// so no card paints over it. `fade` lifts it in and settles it back out on the micro rung; the
+/// slight scale is part of that lift, so the page reads as picked up rather than pasted on.
+fn paint_drag_ghost(ctx: &egui::Context, t: &Tokens, at: egui::Pos2, size: egui::Vec2, thumb: Option<(egui::TextureId, egui::Vec2)>, fade: f32) {
+    let fade = fade.clamp(0.0, 1.0);
+    let page = Rect::from_center_size(at, size * (1.0 + 0.04 * fade));
+    let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Tooltip, egui::Id::unique("custom-home-drag-ghost")));
+    painter.add(
+        egui::Shadow { offset: [0, 8], blur: 22, spread: 0, color: t.page_shadow.gamma_multiply(0.8 * fade) }.as_shape(page, CornerRadius::same(6)),
+    );
+    match thumb {
+        Some((id, texture)) => {
+            let fit = (page.width() / texture.x.max(1.0)).min(page.height() / texture.y.max(1.0));
+            let fitted = Rect::from_center_size(page.center(), texture * fit);
+            let alpha = (255.0 * fade).round().clamp(0.0, 255.0) as u8;
+            painter.image(id, fitted, Rect::from_min_max(egui::Pos2::ZERO, egui::pos2(1.0, 1.0)), Color32::from_white_alpha(alpha));
+            painter.rect_stroke(fitted, CornerRadius::same(3), Stroke::new(1.0, t.border.gamma_multiply(fade)), egui::StrokeKind::Inside);
+        }
+        None => {
+            painter.rect(
+                page,
+                CornerRadius::same(6),
+                t.card.gamma_multiply(fade),
+                Stroke::new(1.0, t.border.gamma_multiply(fade)),
+                egui::StrokeKind::Inside,
+            );
+        }
+    }
 }
 
 fn empty_note(ui: &mut egui::Ui, t: &Tokens, text: &str) {
@@ -620,7 +811,7 @@ mod tests {
         assert_eq!(app.views.len(), 1, "the document opened");
         assert!(app.library.docs().is_empty(), "opening a PDF does not put it on Home");
         // Home's Import button is the one way in.
-        app.import_pending.push(imported.clone());
+        app.import_pending.push((imported.clone(), None));
         app.open_path(&imported);
         assert_eq!(app.library.docs().len(), 1, "importing keeps the PDF on Home");
         assert_eq!(app.library.docs()[0].path, imported);
@@ -630,6 +821,25 @@ mod tests {
         restarted.restore(&saved);
         assert_eq!(restarted.docs().len(), 1);
         assert_eq!(restarted.docs()[0].path, imported);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A PDF imported while a folder is open lands in that folder, not at the top level.
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn an_import_inside_a_folder_files_the_pdf_there() {
+        let dir = std::env::temp_dir().join(format!("pdfcraft-import-folder-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("a scratch folder");
+        let path = dir.join("filed.pdf");
+        std::fs::write(&path, include_bytes!("../../tests/data/form.pdf")).expect("a scratch PDF");
+        let path = path.to_string_lossy().into_owned();
+
+        let mut app = PdfCraftApp::new();
+        let folder = app.library.create_folder("Work").expect("a folder");
+        app.import_pending.push((path.clone(), Some(folder)));
+        app.open_path(&path);
+        assert_eq!(app.library.docs_in(Some(folder)).count(), 1, "the import is filed in the open folder");
+        assert_eq!(app.library.docs_in(None).count(), 0, "and not at the top level");
         let _ = std::fs::remove_dir_all(&dir);
     }
 
