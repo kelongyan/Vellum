@@ -69,10 +69,10 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     app.active = None;
                     app.combine_tab.focused = false;
                 }
-                // CUSTOM(kelongyan): with the Discord button gone, its text and padding no longer
-                // count here. Keep the two icon buttons and the gaps around them outside the
-                // scrolling tabs.
-                let controls_width = 2.0 * button + 12.0 + window_controls::width(&controls.right);
+                // CUSTOM(kelongyan): the Discord button is gone, so its text, padding and one gap
+                // no longer count here. Upstream's three icon buttons (settings, the tool button and
+                // Help) stay outside the scrolling tabs, as do the window's own controls.
+                let controls_width = 3.0 * button + 16.0 + window_controls::width(&controls.right);
                 // Open stays in sight after the tabs: its icon, text and padding, and the gaps around it.
                 let open_width = ui.fonts_mut(|f| f.layout_no_wrap(tl!("Open").into(), theme::medium(13.0), t.text).size().x) + 38.0 + 12.0;
                 let mut tabs_width = (ui.available_width() - controls_width - open_width).max(0.0);
@@ -133,18 +133,20 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                                 let file = (name != doc.name).then_some(doc.name.as_str());
                                 let response = tab(
                                     ui,
-                                    ui.scope_id().with(("document-tab", app.views[i].id)),
-                                    &t,
-                                    "file-text",
-                                    &name,
-                                    file,
-                                    dirty,
-                                    app.active == Some(i),
+                                    TabSpec {
+                                        id: ui.scope_id().with(("document-tab", app.views[i].id)),
+                                        theme: &t,
+                                        icon: "file-text",
+                                        name: &name,
+                                        file,
+                                        dirty,
+                                        active: app.active == Some(i),
+                                        index: i,
+                                        cap,
+                                        height: tab_h,
+                                        draggable: true,
+                                    },
                                     &mut close,
-                                    i,
-                                    cap,
-                                    tab_h,
-                                    true,
                                 );
                                 slots.push((i, response.rect));
                                 if response.dragged() || response.drag_stopped() {
@@ -215,18 +217,20 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                                 let mut close = None;
                                 let response = tab(
                                     ui,
-                                    ui.scope_id().with("combine-tab"),
-                                    &t,
-                                    "files",
-                                    tl!("Combine files"),
-                                    None,
-                                    false,
-                                    app.combine_showing(),
+                                    TabSpec {
+                                        id: ui.scope_id().with("combine-tab"),
+                                        theme: &t,
+                                        icon: "files",
+                                        name: tl!("Combine files"),
+                                        file: None,
+                                        dirty: false,
+                                        active: app.combine_showing(),
+                                        index: usize::MAX,
+                                        cap,
+                                        height: tab_h,
+                                        draggable: false,
+                                    },
                                     &mut close,
-                                    usize::MAX,
-                                    cap,
-                                    tab_h,
-                                    false,
                                 );
                                 if changed && app.combine_showing() {
                                     response.scroll_to_me(Some(Align::Center));
@@ -281,6 +285,9 @@ pub fn tab_strip(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                             window_controls::buttons(ui, &controls.right);
                         });
                         ui.add_space(window_controls::SIDE_GAP - 4.0);
+                    }
+                    if icons::button(ui, "settings", button, false, tl!("Preferences")).clicked() {
+                        app.execute("app.preferences");
                     }
                     let (icon, label) = match app.theme_preference {
                         ThemePreference::System => ("monitor", tl!("Use system setting")),
@@ -393,22 +400,22 @@ fn tab_cap(natural: &[f32], budget: f32, gap: f32, min: f32) -> Option<f32> {
 
 /// Draw one tab with its icon, elided label, close button and unsaved dot; records a close request and
 /// returns the tab response for drag handling.
-#[allow(clippy::too_many_arguments)]
-fn tab(
-    ui: &mut egui::Ui,
+struct TabSpec<'a> {
     id: egui::Id,
-    t: &Tokens,
-    icon: &str,
-    name: &str,
-    file: Option<&str>,
+    theme: &'a Tokens,
+    icon: &'a str,
+    name: &'a str,
+    file: Option<&'a str>,
     dirty: bool,
     active: bool,
-    close: &mut Option<usize>,
     index: usize,
     cap: Option<f32>,
     height: f32,
     draggable: bool,
-) -> egui::Response {
+}
+
+fn tab(ui: &mut egui::Ui, spec: TabSpec<'_>, close: &mut Option<usize>) -> egui::Response {
+    let TabSpec { id, theme: t, icon, name, file, dirty, active, index, cap, height, draggable } = spec;
     let font = theme::regular(13.0);
     let mut label = tab_name(name);
     // A shrunk tab shows as much of its name as fits (the tooltip has all of it).
