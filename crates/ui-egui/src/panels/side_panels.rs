@@ -330,6 +330,10 @@ impl PaneContent<Pane> for Content<'_> {
             let opacity = ui.opacity();
             ui.set_opacity(opacity * rise);
         }
+        // CUSTOM(kelongyan): a panel is a dialog's peer - same field fill, same outline, same
+        // 32-point controls, in both panes. Without this the bookmark search box was white on
+        // white in the light theme.
+        crate::widgets::begin_panel(ui);
         match pane {
             Pane::Tools => crate::panels::left_panel(self.app, ui),
             Pane::Side => {

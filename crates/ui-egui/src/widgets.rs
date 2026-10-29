@@ -9,11 +9,11 @@ pub(super) mod icon_data;
 pub mod icons;
 
 /// Horizontal and vertical inset of a single-line field.
-const FIELD_MARGIN: egui::Margin = egui::Margin::symmetric(10, 6);
+const FIELD_MARGIN: egui::Margin = egui::Margin::symmetric(11, 7);
 /// Where text starts inside a [`line`] or [`block`] field, so plain values beside fields can line up with it.
 pub(crate) const FIELD_TEXT_INSET: f32 = FIELD_MARGIN.left as f32;
 /// Outer height of a single-line field, including its inset.
-const FIELD_MIN_HEIGHT: f32 = 30.0;
+const FIELD_MIN_HEIGHT: f32 = 32.0;
 /// Padding inside every modal.
 const DIALOG_PAD_X: i8 = 20;
 const DIALOG_PAD_Y: i8 = 16;
@@ -51,23 +51,40 @@ pub fn show_modal<R>(ctx: &egui::Context, id: &str, content: impl FnOnce(&mut eg
     })
 }
 
-/// Outlined controls at a shared 30-point height, with a focus stroke and 4-point corners.
+/// Outlined controls at a shared 32-point height, with a focus stroke and 6-point corners.
 ///
 /// Dialog fills match the theme's field colour, so radio buttons, check boxes, combo boxes
 /// and number fields need the border or they disappear into the card.
 pub fn begin_dialog(ui: &mut egui::Ui) {
+    let outline = Tokens::get(ui.ctx()).border_strong;
+    begin_controls(ui, outline);
+    ui.spacing_mut().interact_size.y = FIELD_MIN_HEIGHT;
+}
+
+/// The same outlined controls inside a side panel. A panel's background is white in the light
+/// theme, exactly like a dialog card, so a field without a border is an invisible field: the
+/// bookmark search box used to be one. Call it once at the top of a panel's content.
+pub fn begin_panel(ui: &mut egui::Ui) {
+    let outline = Tokens::get(ui.ctx()).border_strong;
+    begin_controls(ui, outline);
+    ui.spacing_mut().interact_size.y = FIELD_MIN_HEIGHT;
+}
+
+/// CUSTOM(kelongyan): one place that decides what a stock control looks like, shared by dialogs
+/// and panels so a field or a combo box is the same object wherever it appears.
+fn begin_controls(ui: &mut egui::Ui, outline: Color32) {
     let t = Tokens::get(ui.ctx());
     let w = &mut ui.visuals_mut().widgets;
-    w.inactive.bg_stroke = Stroke::new(1.0, t.border);
+    w.inactive.bg_stroke = Stroke::new(1.0, outline);
     w.inactive.weak_bg_fill = t.field;
     // Slider rails and check-box interiors use the plain fill.
     w.inactive.bg_fill = t.hover;
     w.hovered.bg_stroke = Stroke::new(1.0, t.text_muted);
+    w.active.bg_stroke = Stroke::new(1.5, t.accent);
     for state in [&mut w.inactive, &mut w.hovered, &mut w.active, &mut w.open] {
-        state.corner_radius = CornerRadius::same(4);
+        state.corner_radius = CornerRadius::same(6);
     }
     ui.visuals_mut().selection.stroke = Stroke::new(1.5, t.accent);
-    ui.spacing_mut().interact_size.y = FIELD_MIN_HEIGHT;
 }
 
 /// A single-line field tall enough to read and to click.
@@ -116,7 +133,7 @@ pub(crate) fn paint_left(ui: &egui::Ui, pos: egui::Pos2, text: &str, font: egui:
 /// A mode-bar tab: text with an underline when active.
 pub fn mode_tab(ui: &mut egui::Ui, label: &str, active: bool) -> Response {
     let t = Tokens::get(ui.ctx());
-    let font = if active { theme::semibold(13.5) } else { theme::medium(13.5) };
+    let font = if active { theme::semibold(14.0) } else { theme::medium(14.0) };
     let w = ui.fonts_mut(|f| f.layout_no_wrap(label.to_owned(), font.clone(), t.text).size().x);
     let (rect, resp) = ui.allocate_exact_size(vec2(w + 22.0, 48.0), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, ui.is_enabled(), active, label));
@@ -176,24 +193,29 @@ pub fn pill_button(ui: &mut egui::Ui, label: &str, primary: bool) -> Response {
 /// assistive tech follows it) and shows a ring in the accent colour around the pill.
 pub fn pill_button_marked(ui: &mut egui::Ui, label: &str, primary: bool, marked: bool) -> Response {
     let t = Tokens::get(ui.ctx());
-    let font = theme::medium(12.5);
+    let font = theme::medium(13.0);
     let text_color = if primary { Color32::WHITE } else { t.text };
     // Dialog buttons are translated UI text: an explicit RTL base keeps an Arabic label right
     // to left even when its first strong character is Latin or a placeholder.
     let label_galley = crate::bidi::layout_ui(ui, label.to_owned(), font, text_color);
     let w = label_galley.size().x;
-    let (rect, resp) = ui.allocate_exact_size(vec2(w + 26.0, 28.0), Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(vec2(w + 28.0, 32.0), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), label));
     let press = theme::Press::track(ui, &resp);
+    // CUSTOM(kelongyan): a solid button takes `accent_fill`, which is the same blue in the light
+    // theme and a deeper one in the dark theme, where `accent` under white text was only 3.3:1.
     let (fill, stroke) = if primary {
-        (press.fill(t.accent, t.accent_text, t.accent.lerp_to_gamma(Color32::BLACK, 0.22)), Stroke::NONE)
+        (
+            press.fill(t.accent_fill, t.accent_fill.lerp_to_gamma(Color32::BLACK, 0.10), t.accent_fill.lerp_to_gamma(Color32::BLACK, 0.22)),
+            Stroke::NONE,
+        )
     } else {
-        (press.fill(t.card, t.hover, t.pressed), Stroke::new(1.0, t.border))
+        (press.fill(t.card, t.hover, t.pressed), Stroke::new(1.0, t.border_strong))
     };
-    ui.painter().rect(rect, CornerRadius::same(14), fill, stroke, egui::StrokeKind::Inside);
+    ui.painter().rect(rect, CornerRadius::same(16), fill, stroke, egui::StrokeKind::Inside);
     if marked {
         resp.request_focus();
-        ui.painter().rect_stroke(rect.expand(2.0), CornerRadius::same(16), Stroke::new(2.0, t.accent), egui::StrokeKind::Outside);
+        ui.painter().rect_stroke(rect.expand(2.0), CornerRadius::same(18), Stroke::new(2.0, t.accent), egui::StrokeKind::Outside);
     }
     let body = rect.translate(press.offset());
     ui.painter().galley(body.center() - label_galley.size() / 2.0, label_galley, text_color);

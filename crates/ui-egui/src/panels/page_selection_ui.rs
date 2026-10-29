@@ -90,7 +90,7 @@ impl PageSelectionInput {
             let label = tl!("Selected pages");
             let width = (ui.available_width() - 32.0).max(40.0);
             let field = ui.add(
-                egui::TextEdit::singleline(&mut self.text)
+                crate::widgets::line(&mut self.text)
                     .id(id)
                     .desired_width(width)
                     .char_limit(16_384)

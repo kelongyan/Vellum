@@ -145,7 +145,7 @@ pub(crate) fn panel(
         state.draft = Draft::from_tag(&tags[0]);
     }
     let search_label = ui.label(tl!("Find a tag"));
-    ui.add(egui::TextEdit::singleline(&mut state.query).hint_text(tl!("Find a tag"))).labelled_by(search_label.id);
+    ui.add(widgets::line(&mut state.query).hint_text(tl!("Find a tag"))).labelled_by(search_label.id);
     ui.add_space(4.0);
     let query = state.query.to_lowercase();
     let matching = visible_tags(tags, &query, &state.collapsed);
@@ -288,6 +288,6 @@ fn field(ui: &mut Ui, label: &str, value: &mut String, multiline: bool) {
     if multiline {
         ui.add(widgets::block(value).desired_rows(2).desired_width(f32::INFINITY)).labelled_by(l.id);
     } else {
-        ui.add(egui::TextEdit::singleline(value).desired_width(f32::INFINITY)).labelled_by(l.id);
+        ui.add(widgets::line(value).desired_width(f32::INFINITY)).labelled_by(l.id);
     }
 }

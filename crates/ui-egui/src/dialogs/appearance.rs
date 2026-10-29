@@ -93,7 +93,7 @@ fn card(ui: &mut egui::Ui, t: &Tokens, title: &str, active: bool, themes: &[(The
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.horizontal(|ui| {
-                ui.label(RichText::new(title).font(theme::semibold(12.5)).color(t.text));
+                ui.label(RichText::new(title).font(theme::semibold(13.0)).color(t.text));
                 if active {
                     ui.label(RichText::new(tl!("Active")).color(t.accent_text).small());
                 }

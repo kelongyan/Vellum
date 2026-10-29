@@ -51,6 +51,8 @@ pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     }
     let mut chosen = None;
     egui::Frame::NONE.fill(t.panel).show(ui, |ui| {
+        // CUSTOM(kelongyan): the search field needs the panel's field outline, or it is white on white.
+        widgets::begin_panel(ui);
         ui.set_min_size(ui.available_size());
         egui::Frame::NONE.inner_margin(egui::Margin { left: 36, right: 28, top: 20, bottom: 12 }).show(ui, |ui| {
             ui.horizontal(|ui| {

@@ -60,7 +60,7 @@ pub fn right_panel(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     ui.vertical(|ui| {
                         ui.spacing_mut().item_spacing.y = 0.0;
                         ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new(tl!(title)).font(theme::semibold(15.5)));
+                            ui.label(egui::RichText::new(tl!(title)).font(theme::semibold(15.0)));
                             if let Some(c) = count {
                                 ui.label(egui::RichText::new(c.to_string()).font(theme::medium(13.0)).color(t.text_faint));
                             }
@@ -140,13 +140,13 @@ pub fn right_panel(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 let mut bookmark_query = ui.data(|d| d.get_temp::<String>(search_id)).unwrap_or_default();
                 if panel == RightPanel::Bookmarks && !info.outline.is_empty() {
                     ui.horizontal(|ui| {
-                        const CLEAR: f32 = 26.0;
+                        const CLEAR: f32 = 28.0;
                         let label = ui.label(tl!("Search"));
                         let previous = bookmark_query.clone();
                         // The panel keeps whatever width its content used, so this row must fit
                         // exactly: any overflow would widen the panel again on every repaint.
                         let width = ui.available_width() - CLEAR - ui.spacing().item_spacing.x;
-                        let response = ui.add(egui::TextEdit::singleline(&mut bookmark_query).desired_width(width)).labelled_by(label.id);
+                        let response = ui.add(crate::widgets::line(&mut bookmark_query).desired_width(width)).labelled_by(label.id);
                         response.widget_info(|| {
                             let mut info = egui::WidgetInfo::text_edit(ui.is_enabled(), &previous, &bookmark_query, "");
                             info.label = Some(tl!("Search").to_string());

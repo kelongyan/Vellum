@@ -221,7 +221,7 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
                             let editable = doc.allows_modification();
                             let pages = i.pages.len();
                             let Some((_, v)) = app.view_draft.as_mut() else { return };
-                            ui.label(egui::RichText::new(tl!("Layout and Magnification")).font(theme::semibold(12.5)));
+                            ui.label(egui::RichText::new(tl!("Layout and Magnification")).font(theme::semibold(13.0)));
                             ui.end_row();
                             let label = ui.label(tl!("Navigation tab"));
                             ui.add_enabled_ui(editable, |ui| {
@@ -307,7 +307,7 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
                                 ui.label(crate::i18n::fmt(tl!("of {pages}"), &[("pages", &pages.to_string())]));
                             });
                             ui.end_row();
-                            ui.label(egui::RichText::new(tl!("Window Options")).font(theme::semibold(12.5)));
+                            ui.label(egui::RichText::new(tl!("Window Options")).font(theme::semibold(13.0)));
                             ui.end_row();
                             ui.label("");
                             ui.add_enabled_ui(editable, |ui| {
@@ -323,7 +323,7 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
                                 });
                             });
                             ui.end_row();
-                            ui.label(egui::RichText::new(tl!("User Interface Options")).font(theme::semibold(12.5)));
+                            ui.label(egui::RichText::new(tl!("User Interface Options")).font(theme::semibold(13.0)));
                             ui.end_row();
                             ui.label("");
                             ui.add_enabled_ui(editable, |ui| {
@@ -756,7 +756,7 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 };
                 ui.horizontal(|ui| {
                     let l = ui.label(tl!("Pages"));
-                    ui.add(egui::TextEdit::singleline(&mut app.extract_draft.pages).hint_text(hint).desired_width(240.0)).labelled_by(l.id);
+                    ui.add(widgets::line(&mut app.extract_draft.pages).hint_text(hint).desired_width(240.0)).labelled_by(l.id);
                 });
                 let chosen = app.extract_draft.pages_to_extract(selected, total);
                 match &chosen {
@@ -774,7 +774,7 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 // The name the pages are saved under (#737); separate files add " (page N)".
                 ui.horizontal(|ui| {
                     let l = ui.label(tl!("File name"));
-                    ui.add(egui::TextEdit::singleline(&mut app.extract_draft.name).desired_width(240.0)).labelled_by(l.id);
+                    ui.add(widgets::line(&mut app.extract_draft.name).desired_width(240.0)).labelled_by(l.id);
                 });
                 ui.add(widgets::checkbox(&mut app.extract_draft.delete, tl!("Delete pages after extracting")));
                 ui.add(widgets::checkbox(&mut app.extract_draft.separate, tl!("Extract pages as separate files")));

@@ -373,7 +373,7 @@ pub(crate) fn body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, kind: M
         }
     }
     ui.add_space(8.0);
-    ui.label(egui::RichText::new(tl!("Page Range Options")).font(theme::semibold(12.5)));
+    ui.label(egui::RichText::new(tl!("Page Range Options")).font(theme::semibold(13.0)));
     d.range.ui(ui, count);
     ui.add_space(8.0);
     // The preview: the current page (or the page stepped to), or the first one the range selects

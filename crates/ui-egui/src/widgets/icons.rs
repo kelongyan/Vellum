@@ -36,6 +36,11 @@ pub fn paint(ui: &egui::Ui, rect: Rect, name: &str, size: f32, tint: Color32) {
 /// Square icon button: transparent until hovered; `selected` gets the accent treatment.
 pub fn button(ui: &mut egui::Ui, name: &str, box_size: f32, selected: bool, tooltip: &str) -> Response {
     let t = Tokens::get(ui.ctx());
+    // CUSTOM(kelongyan): two sizes, not eight. Callers used to ask for 18 through 34, which put
+    // 22, 30 and 32 in one rail and made a column look hand-assembled; 28 and 32 are the only
+    // click targets now, and both clear WCAG 2.5.8's 24-point floor. A compact control still
+    // gets a 28-point box instead of a 22-point one.
+    let box_size = if box_size <= 28.0 { 28.0 } else { 32.0 };
     // The shared button paints no fill of its own: the eased press wash below replaces it.
     let clear = |icon| ButtonVisuals { fill: Color32::TRANSPARENT, stroke: Stroke::NONE, icon };
     let style = IconButtonStyle {
@@ -65,6 +70,11 @@ pub fn button(ui: &mut egui::Ui, name: &str, box_size: f32, selected: bool, tool
                 Stroke::new(1.0, t.accent.gamma_multiply(0.45)),
                 egui::StrokeKind::Inside,
             ));
+        }
+        // CUSTOM(kelongyan): the keyboard's position is visible on custom-painted chrome too, not
+        // only in dialogs. A pointer user never sees it; Tab does.
+        if resp.has_focus() {
+            shapes.push(egui::Shape::rect_stroke(rect.shrink(0.5), t.radius, Stroke::new(1.5, t.accent), egui::StrokeKind::Inside));
         }
         ui.painter().set(wash, egui::Shape::Vec(shapes));
         // The glyph shrinks a little and drops a pixel while the pointer is down.
