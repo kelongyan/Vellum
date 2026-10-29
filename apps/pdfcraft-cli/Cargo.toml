@@ -1,12 +1,12 @@
 [package]
 name = "pdfcraft-cli"
-description = "PdfCraft command-line tool: inspect, render and robustness-check PDFs"
+description = "Vellum command-line tool: inspect, render and robustness-check PDFs"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [[bin]]
-name = "pdfcraft-cli"
+name = "vellum-cli"
 path = "src/main.rs"
 
 [lints]
@@ -33,10 +33,10 @@ png = "0.18"
 rustix = { version = "1", features = ["process"] }
 
 [build-dependencies]
-# VERSIONINFO for pdfcraft-cli.exe; build.rs only uses it when targeting Windows.
+# VERSIONINFO for vellum-cli.exe; build.rs only uses it when targeting Windows.
 winresource = "0.1"
 
 [features]
 default = ["mcp"]
-# The opt-in MCP server (`pdfcraft-cli mcp`). Build with --no-default-features to leave it out.
+# The opt-in MCP server (`vellum-cli mcp`). Build with --no-default-features to leave it out.
 mcp = ["pdfcraft-automation/mcp"]

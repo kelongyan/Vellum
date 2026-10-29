@@ -4,10 +4,10 @@
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
-const BIN: &str = env!("CARGO_BIN_EXE_pdfcraft-cli");
+const BIN: &str = env!("CARGO_BIN_EXE_vellum-cli");
 
 fn tmp(test: &str, name: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("pdfcraft-cli-render-{test}-{}", std::process::id()));
+    let d = std::env::temp_dir().join(format!("vellum-cli-render-{test}-{}", std::process::id()));
     std::fs::create_dir_all(&d).unwrap();
     d.join(name)
 }
@@ -15,7 +15,7 @@ fn tmp(test: &str, name: &str) -> PathBuf {
 /// A one-page PDF with some text, as `--out` would be given it.
 fn fixture(test: &str) -> PathBuf {
     let pdf = tmp(test, "in.pdf");
-    let bytes = pdfcraft_engine::Session::new().create_from_text("Render test", "Hello from PdfCraft").unwrap();
+    let bytes = pdfcraft_engine::Session::new().create_from_text("Render test", "Hello from Vellum").unwrap();
     std::fs::write(&pdf, bytes.as_slice()).unwrap();
     pdf
 }
@@ -108,7 +108,7 @@ fn a_page_or_dpi_the_renderer_cannot_use_is_refused_before_reading_the_file() {
         // `missing.pdf` is never read: the option's own message is the error.
         let r = Command::new(BIN).args(["render", "missing.pdf", "--out", out.to_str().unwrap(), option, value]).output().unwrap();
         assert_eq!(r.status.code(), Some(1), "{option} {value}");
-        assert_eq!(r.stderr, format!("pdfcraft-cli: {diagnostic}\n").as_bytes(), "{option} {value}");
+        assert_eq!(r.stderr, format!("vellum-cli: {diagnostic}\n").as_bytes(), "{option} {value}");
         assert!(!out.exists(), "{option} {value}: no output may be written");
     }
 }

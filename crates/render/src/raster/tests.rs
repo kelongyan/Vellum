@@ -1918,7 +1918,7 @@ fn no_rotate_notes_stay_upright_at_their_corner_on_rotated_pages() {
             "<< /Type /Catalog /Pages 2 0 R >>".to_string(),
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_string(),
             format!("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 140] /Rotate {rotation} /Annots [4 0 R 5 0 R] >>"),
-            // NoRotate (and Print), as PdfCraft and Acrobat save notes.
+            // NoRotate (and Print), as Vellum and Acrobat save notes.
             "<< /Type /Annot /Subtype /Text /F 20 /Rect [40 50 70 70] /AP << /N 6 0 R >> >>".to_string(),
             // The same appearance without the flag.
             "<< /Type /Annot /Subtype /Text /F 4 /Rect [120 50 150 70] /AP << /N 6 0 R >> >>".to_string(),
@@ -2051,7 +2051,7 @@ trailer << /Root 1 0 R >>
 
 /// A Highlight annotation without an appearance stream (common in older and generated files)
 /// was not drawn at all. Vendored hayro-interpret patch: its /QuadPoints are filled with /C at
-/// /CA, blended with Multiply, as PdfCraft draws its own highlights (pdfcraft-annot); MuPDF,
+/// /CA, blended with Multiply, as Vellum draws its own highlights (pdfcraft-annot); MuPDF,
 /// Poppler and PDFium draw these fixtures the same way. An /AP still wins, malformed
 /// /QuadPoints or no /C draw nothing, and Hidden, NoView and "Hide all comments" still apply.
 #[test]

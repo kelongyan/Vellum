@@ -1025,7 +1025,7 @@ fn check_boxes_and_radios_switch_states() {
     let size = field(&all, "size");
     assert_eq!(size.value, ["L"]);
     assert_eq!(size.widgets.iter().map(|w| w.state.clone().unwrap()).collect::<Vec<_>>(), ["Off", "L"]);
-    // The bare check box got PdfCraft's own appearances and kept its other keys.
+    // The bare check box got Vellum's own appearances and kept its other keys.
     let bare = field(&all, "bare");
     assert_eq!(bare.value, ["Yes"]);
     assert_eq!(bare.widgets[0].on_state.as_deref(), Some("Yes"));
@@ -3758,7 +3758,7 @@ fn dr_fonts(doc: &Document) -> Dict {
 }
 
 /// #3441: Acrobat shows nothing in a text field it redraws after typing when the field's `/DR`
-/// font is a dictionary written inline. A form PdfCraft makes holds each font as its own object.
+/// font is a dictionary written inline. A form Vellum makes holds each font as its own object.
 #[test]
 fn a_new_form_holds_its_fonts_as_objects() {
     let mut doc = document(&[
@@ -3834,7 +3834,7 @@ fn an_indirect_resource_dictionary_and_a_complete_inline_set_are_handled() {
 
 /// #3441: fonts the form already has are its own, not replaced by the standard ones: an inline
 /// `/Helv` that is Arial becomes an object that is still Arial, a `/TiRo` object stays that
-/// object, and a form needing no change leaves its `/DR` object unwritten. The fonts PdfCraft
+/// object, and a form needing no change leaves its `/DR` object unwritten. The fonts Vellum
 /// adds use WinAnsi, as Acrobat's do.
 #[test]
 fn existing_form_fonts_are_kept_and_an_unchanged_resource_dictionary_is_not_rewritten() {
@@ -4009,7 +4009,7 @@ fn assert_requested_font_shapes(doc: &Document, acro: &Dict, dr: &Object, fonts:
 }
 
 /// #3441 (review follow-up): filling a field converts the form's inline `/DR` fonts, so a form
-/// an earlier PdfCraft made works in Acrobat once it has been filled here. Nothing is added. A
+/// an earlier Vellum made works in Acrobat once it has been filled here. Nothing is added. A
 /// form a signature covers keeps `/DR` as the signer saw it, and a form whose fonts are objects
 /// already leaves its `/DR` object unwritten.
 #[test]
@@ -4387,7 +4387,7 @@ fn state_ap(doc: &Document, w: &Widget, state: &str) -> String {
     String::from_utf8_lossy(&s.decoded().unwrap()).into_owned()
 }
 
-/// The decoded appearance PdfCraft would save for text or choice field `name` of `doc`.
+/// The decoded appearance Vellum would save for text or choice field `name` of `doc`.
 fn saved_look(doc: &Document, name: &str) -> String {
     let all = fields(doc);
     let f = field(&all, name);

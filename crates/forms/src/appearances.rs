@@ -223,7 +223,7 @@ pub fn declares_pdfa(doc: &Document) -> bool {
     }
 }
 
-/// Every field with a widget whose appearance PdfCraft drew with `?` for a character its font
+/// Every field with a widget whose appearance Vellum drew with `?` for a character its font
 /// can't hold (`pdfcraft_fonts::UNDRAWN_MARK`): the field's name and that character, once per
 /// field.
 pub fn undrawn_fields(doc: &Document) -> Vec<(String, char)> {

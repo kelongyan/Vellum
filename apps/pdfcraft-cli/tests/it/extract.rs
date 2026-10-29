@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
-const BIN: &str = env!("CARGO_BIN_EXE_pdfcraft-cli");
+const BIN: &str = env!("CARGO_BIN_EXE_vellum-cli");
 
 /// A PDF with `n` empty 200×300 pt pages.
 fn fixture(n: usize) -> Vec<u8> {
@@ -72,7 +72,7 @@ startxref
 
 /// A fresh directory holding `five.pdf` (5 pages).
 fn workdir(test: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("pdfcraft-cli-extract-{test}-{}", std::process::id()));
+    let d = std::env::temp_dir().join(format!("vellum-cli-extract-{test}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     std::fs::write(d.join("five.pdf"), fixture(5)).unwrap();

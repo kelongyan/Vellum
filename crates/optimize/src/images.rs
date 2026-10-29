@@ -177,7 +177,7 @@ pub fn effective_resolutions(doc: &Document, pages: &[ObjRef]) -> HashMap<ObjRef
     walk.out
 }
 
-/// Colour components of a colour space PdfCraft resamples: gray (1) or RGB (3).
+/// Colour components of a colour space Vellum resamples: gray (1) or RGB (3).
 pub(crate) fn components(doc: &Document, cs: &Object) -> Option<usize> {
     let cs = doc.resolve(cs);
     match &*cs {
@@ -285,7 +285,7 @@ pub(crate) fn pixels(doc: &Document, s: &Stream, n: usize) -> Option<Vec<u8>> {
 /// /ColorTransform; without a marker /ColorTransform does, 1 (YCbCr) by default.
 ///
 /// `None`, so the image is left as it is, when readers may disagree: the marker and
-/// /ColorTransform contradict each other (PdfCraft's renderer lets /ColorTransform 0 win where
+/// /ColorTransform contradict each other (Vellum's renderer lets /ColorTransform 0 win where
 /// the standard lets the marker win), either holds a value other than 0 or 1, or the parameters
 /// or the JPEG's segments can't be read.
 fn ycc_encoded(doc: &Document, s: &Stream) -> Option<bool> {

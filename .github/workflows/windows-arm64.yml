@@ -29,7 +29,7 @@ jobs:
   windows-arm64:
     uses: storytold/craft-common-actions/.github/workflows/windows-arm64.yml@8bb4e5ab95443171104ad88113fe1ef9b0e5ce3f
     with:
-      app-name: pdfcraft
-      app-dir: PdfCraft
-      install-relative-path: Programs/ArtCraft/PdfCraft
+      app-name: vellum
+      app-dir: Vellum
+      install-relative-path: Programs/Vellum
       install-scope: perUser

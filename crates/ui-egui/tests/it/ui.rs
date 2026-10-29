@@ -129,7 +129,7 @@ fn home_removes_one_recent_file_or_clears_them_all() {
     h.get_by_label("Clear Recent Files").click();
     h.run_steps(2);
     assert!(h.state().recent.is_empty(), "Clear empties the list");
-    h.get_by_label_contains("Files you open in PdfCraft appear here");
+    h.get_by_label_contains("Files you open in Vellum appear here");
     assert!(h.query_by_label("Clear Recent Files").is_none(), "and goes away with nothing left to clear");
 }
 
@@ -339,7 +339,7 @@ fn opening_a_document_collapses_all_tools_and_shows_the_outline() {
     assert!(h.state().left_open, "the All tools button reopens the pane");
 }
 
-/// #1590: side panes the user closed stay closed when PdfCraft restarts and opens another PDF,
+/// #1590: side panes the user closed stay closed when Vellum restarts and opens another PDF,
 /// even one with comments and bookmarks, which would otherwise open on the Comments panel.
 #[test]
 fn closed_side_panes_stay_closed_after_a_restart_and_opening_a_pdf() {

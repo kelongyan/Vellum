@@ -217,7 +217,7 @@ fn run_here(
         install(&mut ctx)?;
         let ev = event_object(&mut ctx, event);
         ctx.register_global_property(js_string!("event"), ev.clone(), Attribute::all())?;
-        // One document script that throws (calling a method PdfCraft lacks, say) must not keep
+        // One document script that throws (calling a method Vellum lacks, say) must not keep
         // every field script in the form from running: what it defined before the error, and
         // the other scripts, stay available (#3940).
         for &(i, d) in doc_scripts {

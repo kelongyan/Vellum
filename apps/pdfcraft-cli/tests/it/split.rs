@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
-const BIN: &str = env!("CARGO_BIN_EXE_pdfcraft-cli");
+const BIN: &str = env!("CARGO_BIN_EXE_vellum-cli");
 
 /// A PDF with `n` empty 200×300 pt pages.
 fn fixture(n: usize) -> Vec<u8> {
@@ -33,7 +33,7 @@ fn fixture(n: usize) -> Vec<u8> {
 
 /// A fresh directory holding `report.pdf` (3 pages).
 fn workdir(test: &str) -> PathBuf {
-    let d = std::env::temp_dir().join(format!("pdfcraft-cli-split-{test}-{}", std::process::id()));
+    let d = std::env::temp_dir().join(format!("vellum-cli-split-{test}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
     std::fs::write(d.join("report.pdf"), fixture(3)).unwrap();
@@ -87,7 +87,7 @@ fn a_non_positive_or_unparseable_every_is_refused_before_the_file_is_opened() {
         assert_eq!(out.status.code(), Some(1), "--every {value}");
         assert_eq!(
             out.stderr,
-            format!("pdfcraft-cli: bad --every: expected a positive whole number of pages, got {value:?}\n").as_bytes(),
+            format!("vellum-cli: bad --every: expected a positive whole number of pages, got {value:?}\n").as_bytes(),
             "--every {value}"
         );
         assert!(!out_dir.exists(), "--every {value}: nothing may be written");

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use pdfcraft_cos::{Algorithm, NewEncryption};
 
-const BIN: &str = env!("CARGO_BIN_EXE_pdfcraft-cli");
+const BIN: &str = env!("CARGO_BIN_EXE_vellum-cli");
 
 /// A one-page 200×300 pt PDF reading "Page 1", drawn by `content`.
 fn fixture(content: &str) -> Vec<u8> {
@@ -59,7 +59,7 @@ fn protected_with(algorithm: Algorithm, content: &str) -> Vec<u8> {
 }
 
 fn tmp(name: &str) -> std::path::PathBuf {
-    let d = std::env::temp_dir().join(format!("pdfcraft-cli-owner-{}", std::process::id()));
+    let d = std::env::temp_dir().join(format!("vellum-cli-owner-{}", std::process::id()));
     std::fs::create_dir_all(&d).unwrap();
     d.join(name)
 }

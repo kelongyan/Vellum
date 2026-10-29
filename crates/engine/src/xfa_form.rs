@@ -24,7 +24,7 @@ pub(crate) fn xfa_redraw(doc: &mut pdfcraft_cos::Document) -> Result<(), String>
     Ok(())
 }
 
-/// A warning for each field whose appearance PdfCraft drew with `?` for a character its font
+/// A warning for each field whose appearance Vellum drew with `?` for a character its font
 /// can't draw (laying out an XFA form's own values).
 pub(crate) fn undrawn_field_warnings(doc: &pdfcraft_cos::Document) -> Vec<String> {
     pdfcraft_forms::undrawn_fields(doc)
@@ -122,7 +122,7 @@ pub(crate) fn decode_data_file(bytes: &[u8]) -> Option<Result<String, String>> {
 
 /// Take the XFA out of `doc` and note what went with it: the packets, data no field showed,
 /// buttons that did nothing but run scripts, and fields whose value differs from the form's
-/// data (data PdfCraft could not read into them, now lost).
+/// data (data Vellum could not read into them, now lost).
 pub(crate) fn strip_xfa(doc: &mut pdfcraft_cos::Document, cx: &mut EditCtx) -> Result<(), EditError> {
     let fields = pdfcraft_forms::fields(doc);
     let data = xfa_field_data(doc);
@@ -142,7 +142,7 @@ pub(crate) fn strip_xfa(doc: &mut pdfcraft_cos::Document, cx: &mut EditCtx) -> R
     cx.xfa_removed.extend(r.notes());
     if differ > 0 {
         cx.xfa_removed.push(format!(
-            "{differ} field(s) held a value other than the form's XFA data (data PdfCraft could not read into them); the data's version is gone"
+            "{differ} field(s) held a value other than the form's XFA data (data Vellum could not read into them); the data's version is gone"
         ));
     }
     Ok(())

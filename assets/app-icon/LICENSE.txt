@@ -1,8 +1,8 @@
-PdfCraft app icon (pdfcraft-logo.png and every file derived from it in this directory:
-pdfcraft-1024.png, pdfcraft.icns, pdfcraft.ico, hicolor/).
+Vellum app icon (vellum-logo.png and every file derived from it in this directory:
+vellum-1024.png, vellum.icns, vellum.ico, hicolor/).
 
 Artwork provided by the project owner on 2026-10-29 (no third-party material). Licensed like
-the rest of PdfCraft, under either of
+the rest of Vellum, under either of
 
   * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
   * MIT license (https://opensource.org/licenses/MIT)

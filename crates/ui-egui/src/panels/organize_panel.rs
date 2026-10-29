@@ -212,7 +212,7 @@ pub(crate) fn page_props_body(ui: &mut egui::Ui, d: &mut crate::PagePropsDraft) 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Availability {
     Ready,
-    /// Not in PdfCraft yet: shown muted, as Acrobat lists it, and says it is planned when hovered.
+    /// Not in Vellum yet: shown muted, as Acrobat lists it, and says it is planned when hovered.
     Later,
 }
 

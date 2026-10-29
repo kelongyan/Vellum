@@ -3,11 +3,11 @@ use super::{CliError, Duration, stdout_line};
 
 // ---- UI control channel client -----------------------------------------------------------------
 
-/// One request to a running app's control channel (`pdfcraft --control FILE`).
+/// One request to a running app's control channel (`vellum --control FILE`).
 pub(crate) fn ui(args: &[String]) -> Result<(), CliError> {
     validate_options("ui", args, UI_OPTIONS)?;
     use std::io::{BufRead, BufReader, Write as _};
-    let file = flag(args, "--control").ok_or("ui: missing --control FILE (start the app with `pdfcraft --control FILE`)")?;
+    let file = flag(args, "--control").ok_or("ui: missing --control FILE (start the app with `vellum --control FILE`)")?;
     let info = read_control_file(file)?;
     let port = info["port"].as_u64().ok_or(format!("{file}: no port"))?;
     // Refused rather than truncated, which would quietly reach some other port.
@@ -51,9 +51,9 @@ pub(crate) fn ui(args: &[String]) -> Result<(), CliError> {
 const CONTROL_FILE_MAX: u64 = 64 * 1024;
 
 const CONTROL_FILE_ADVICE: &str =
-    "Start the app with a control file in a folder only you can write, such as `pdfcraft --control ~/.pdfcraft-control.json`";
+    "Start the app with a control file in a folder only you can write, such as `vellum --control ~/.vellum-control.json`";
 
-/// Read the file written by `pdfcraft --control FILE`.
+/// Read the file written by `vellum --control FILE`.
 ///
 /// It names the port that receives the token and every command, typed text included, so it must
 /// be the user's own. In a shared folder such as `/tmp`, another local user can create the file

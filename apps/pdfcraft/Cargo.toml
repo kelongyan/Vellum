@@ -1,9 +1,13 @@
 [package]
 name = "pdfcraft"
-description = "PdfCraft desktop app"
+description = "Vellum desktop app"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+
+[[bin]]
+name = "vellum"
+path = "src/main.rs"
 
 [lints]
 workspace = true
@@ -64,7 +68,7 @@ windows = { version = "0.62", default-features = false, features = ["std", "UI_V
 uds_windows = "=1.2.1"
 
 [build-dependencies]
-# Icon + VERSIONINFO for pdfcraft.exe; build.rs only uses it when targeting Windows.
+# Icon + VERSIONINFO for vellum.exe; build.rs only uses it when targeting Windows.
 winresource = "0.1"
 
 [target.'cfg(windows)'.dependencies]

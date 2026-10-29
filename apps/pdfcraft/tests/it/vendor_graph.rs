@@ -7,7 +7,7 @@
 //! instead of treating the copies as the runtime source. The winit fork's own W17 tests own patch
 //! behaviour.
 
-/// Return the workspace root above the PdfCraft app crate.
+/// Return the workspace root above the Vellum app crate.
 fn root() -> std::path::PathBuf {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }

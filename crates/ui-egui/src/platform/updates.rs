@@ -7,8 +7,17 @@ use egui::{Align, Layout};
 
 use crate::{PdfCraftApp, theme, widgets};
 
-/// Where every PdfCraft release is listed.
-pub const RELEASES_PAGE: &str = "https://github.com/storytold/pdfcraft/releases";
+/// Where every Vellum release is listed.
+pub const RELEASES_PAGE: &str = "https://github.com/kelongyan/Vellum/releases";
+
+// CUSTOM(kelongyan): the fork's own identity for the updater, which would otherwise offer upstream
+// PdfCraft releases. Older ids and names let it recognise an installation made before the rename.
+#[cfg(not(target_arch = "wasm32"))]
+pub const VELLUM_APP: craft_update::app::App = craft_update::app::App {
+    former_ids: &["pdfcraft", "printcraft"],
+    former_names: &["PdfCraft", "PrintCraft"],
+    ..craft_update::app::App::new("vellum", "Vellum", "Reading, organizing and protecting PDFs", "kelongyan/Vellum")
+};
 
 /// Stands in for the network in tests.
 #[cfg(not(target_arch = "wasm32"))]
@@ -30,7 +39,7 @@ impl Default for Updates {
     fn default() -> Self {
         Self {
             #[cfg(not(target_arch = "wasm32"))]
-            updater: Updater::new(&craft_update::suite::PDFCRAFT, env!("CARGO_PKG_VERSION")),
+            updater: Updater::new(&VELLUM_APP, env!("CARGO_PKG_VERSION")),
             open: false,
             #[cfg(not(target_arch = "wasm32"))]
             startup_check: false,
@@ -50,7 +59,7 @@ impl PdfCraftApp {
     /// Replaces the network with `source` (tests).
     #[cfg(not(target_arch = "wasm32"))]
     pub fn set_update_source(&mut self, source: UpdateSource) {
-        self.updates.updater = Updater::new(&craft_update::suite::PDFCRAFT, env!("CARGO_PKG_VERSION")).with_source(source);
+        self.updates.updater = Updater::new(&VELLUM_APP, env!("CARGO_PKG_VERSION")).with_source(source);
     }
 
     /// Help ▸ Check for updates: ask for the latest release and show the outcome.
@@ -128,7 +137,7 @@ pub(crate) fn dialog(app: &mut PdfCraftApp, ctx: &egui::Context) {
                 });
             }
             Status::UpToDate => {
-                ui.label(crate::i18n::fmt(tl!("PdfCraft {c} is up to date."), &[("c", current)]));
+                ui.label(crate::i18n::fmt(tl!("Vellum {c} is up to date."), &[("c", current)]));
             }
             Status::Failed(e) => {
                 ui.label(crate::i18n::fmt(tl!("Couldn't check for updates: {e}"), &[("e", e)]));

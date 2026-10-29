@@ -1,16 +1,12 @@
-//! Where PdfCraft and the ArtCraft community live on the web. One table, so the Help menu, the
+//! Where Vellum lives on the web. One table, so the Help menu, the
 //! About dialog, the home screen, the CLI and the README agree.
 
 use icu_properties::props::Script;
 use std::path::{Path, PathBuf};
 
-/// The app's name in ArtCraft URLs (`getartcraft.com/apps/{APP}`, `github.com/storytold/{APP}`).
-pub const APP: &str = "pdfcraft";
-
-// CUSTOM(kelongyan): the Discord link was removed from this fork.
-pub const WEBSITE: &str = "https://getartcraft.com";
-pub const APP_PAGE: &str = "https://getartcraft.com/apps/pdfcraft";
-pub const GITHUB: &str = "https://github.com/storytold/pdfcraft";
+// CUSTOM(kelongyan): this fork's own download page and source replace the ArtCraft app page and website.
+pub const APP_PAGE: &str = "https://github.com/kelongyan/Vellum/releases";
+pub const GITHUB: &str = "https://github.com/kelongyan/Vellum";
 
 /// A link and the registry command that opens it.
 #[derive(Clone, Copy, Debug)]
@@ -25,16 +21,15 @@ pub struct Link {
 /// In the order they are shown.
 // CUSTOM(kelongyan): the Discord entry was removed; the first link keeps the prominent pill.
 pub const LINKS: &[Link] = &[
-    Link { command: "help.app_page", label: "PdfCraft web page", url: APP_PAGE, icon: "globe" },
-    Link { command: "help.github", label: "PdfCraft on GitHub", url: GITHUB, icon: "code-xml" },
-    Link { command: "help.website", label: "ArtCraft website", url: WEBSITE, icon: "external-link" },
+    Link { command: "help.app_page", label: "Vellum web page", url: APP_PAGE, icon: "globe" },
+    Link { command: "help.github", label: "Vellum on GitHub", url: GITHUB, icon: "code-xml" },
 ];
 
 pub fn for_command(id: &str) -> Option<&'static Link> {
     LINKS.iter().find(|l| l.command == id)
 }
 
-/// The kinds of address a document may ask PdfCraft to open: web pages and email. Anything
+/// The kinds of address a document may ask Vellum to open: web pages and email. Anything
 /// else (`file:`, `javascript:`, `data:`, `smb:`, app handlers such as `ms-settings:`) is refused,
 /// because the operating system would hand it to whichever program claims it (#90, #91).
 pub const DOCUMENT_SCHEMES: &[&str] = &["https", "http", "mailto"];
@@ -88,8 +83,8 @@ fn hides_text(c: char) -> bool {
 }
 
 /// Check an address that came from a document (a link, a button's URI action or a script's
-/// `app.launchURL`) before PdfCraft offers to open it. Returns the address trimmed of
-/// surrounding whitespace. PdfCraft's own links (Help, About, updates) don't come through here.
+/// `app.launchURL`) before Vellum offers to open it. Returns the address trimmed of
+/// surrounding whitespace. Vellum's own links (Help, About, updates) don't come through here.
 pub fn document_url(raw: &str) -> Result<String, BlockedLink> {
     let url = raw.trim();
     if url.is_empty() {
@@ -257,7 +252,7 @@ const MAIL_DECODE_LAYERS: usize = 8;
 /// argument). The check is repeated after each layer of percent-decoding (KMail decodes names, so
 /// `%61ttach` is `attach`). A word without `=` (`Please attach the invoice`) is fine.
 ///
-/// The address is refused, not stripped of the parameter: PdfCraft never rewrites what a document
+/// The address is refused, not stripped of the parameter: Vellum never rewrites what a document
 /// asks to open, and a stripped address could still be read differently by some email app.
 fn check_mail_parameters(rest: &str) -> Result<(), BlockedLink> {
     let mut text = rest.to_string();

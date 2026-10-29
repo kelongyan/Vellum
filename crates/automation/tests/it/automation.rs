@@ -70,7 +70,7 @@ fn saving_a_pdf_keeps_the_destinations_extended_attributes() {
     use rustix::fs::{XattrFlags, getxattr, setxattr};
     let dir = workdir("save-xattrs");
     let target = dir.join("a.pdf");
-    let tags = b"<plist version=\"1.0\"><array><string>PdfCraft\n6</string></array></plist>";
+    let tags = b"<plist version=\"1.0\"><array><string>Vellum\n6</string></array></plist>";
     let binary = b"\0\xffpdfcraft\0";
     let attributes: &[(&str, &[u8])] = &[("com.apple.metadata:_kMDItemUserTags", tags), ("com.pdfcraft.test", binary)];
     for (name, value) in attributes {
@@ -1595,7 +1595,7 @@ fn mcp_session_over_stdio() {
     assert_eq!(replies.len(), 4, "the notification gets no reply");
 
     assert_eq!(replies[0]["result"]["protocolVersion"], "2025-03-26");
-    assert_eq!(replies[0]["result"]["serverInfo"]["name"], "pdfcraft");
+    assert_eq!(replies[0]["result"]["serverInfo"]["name"], "vellum");
     assert_eq!(replies[1]["result"]["tools"].as_array().unwrap().len(), tools().len());
     assert_eq!(replies[2]["result"]["structuredContent"]["pages"], 3);
     assert_eq!(replies[2]["result"]["isError"], false);
@@ -1613,7 +1613,7 @@ fn mcp_errors() {
     assert_eq!(rpc(&mut s, 1, "initialize", json!({ "protocolVersion": "1999-01-01" }))["result"]["protocolVersion"], "2025-06-18");
     assert_eq!(rpc(&mut s, 2, "ping", json!({}))["result"], json!({}));
     assert_eq!(rpc(&mut s, 3, "prompts/list", json!({}))["error"]["code"], -32601);
-    assert_eq!(rpc(&mut s, 6, "resources/read", json!({ "uri": "pdfcraft://doc/9/info" }))["error"]["code"], -32602);
+    assert_eq!(rpc(&mut s, 6, "resources/read", json!({ "uri": "vellum://doc/9/info" }))["error"]["code"], -32602);
     assert_eq!(rpc(&mut s, 4, "tools/call", json!({ "name": "nope" }))["error"]["code"], -32602);
     let failed = rpc(&mut s, 5, "tools/call", json!({ "name": "doc_open", "arguments": { "path": "/definitely/not/here.pdf" } }));
     assert_eq!(failed["result"]["isError"], true);
@@ -1633,19 +1633,19 @@ fn mcp_resources_expose_open_documents() {
     rpc(&mut s, 4, "tools/call", json!({ "name": "doc_open", "arguments": { "path": "a.pdf" } }));
     let list = rpc(&mut s, 5, "resources/list", json!({}))["result"]["resources"].as_array().cloned().unwrap();
     assert_eq!(list.len(), 2 + 3 + 2, "info, text, three page images and two session resources");
-    assert_eq!(list[0]["uri"], "pdfcraft://doc/1/info");
+    assert_eq!(list[0]["uri"], "vellum://doc/1/info");
     let read = |s: &mut McpServer, uri: &str| rpc(s, 6, "resources/read", json!({ "uri": uri }))["result"]["contents"][0].clone();
-    let text = read(&mut s, "pdfcraft://doc/1/text");
+    let text = read(&mut s, "vellum://doc/1/text");
     assert_eq!(text["mimeType"], "text/plain");
     assert!(text["text"].as_str().unwrap().contains("Page 2\nPage 2"), "{text}");
-    assert_eq!(read(&mut s, "pdfcraft://doc/1/page/3/text")["text"], "Page 3");
-    let info: Value = serde_json::from_str(read(&mut s, "pdfcraft://doc/1/info")["text"].as_str().unwrap()).unwrap();
+    assert_eq!(read(&mut s, "vellum://doc/1/page/3/text")["text"], "Page 3");
+    let info: Value = serde_json::from_str(read(&mut s, "vellum://doc/1/info")["text"].as_str().unwrap()).unwrap();
     assert_eq!(info["pages"].as_array().unwrap().len(), 3);
-    let img = read(&mut s, "pdfcraft://doc/1/page/1/image?dpi=36");
+    let img = read(&mut s, "vellum://doc/1/page/1/image?dpi=36");
     use base64::Engine as _;
     let png = base64::engine::general_purpose::STANDARD.decode(img["blob"].as_str().unwrap()).unwrap();
     assert_eq!(&png[1..4], b"PNG");
-    assert_eq!(rpc(&mut s, 7, "resources/read", json!({ "uri": "pdfcraft://doc/1/page/9/image" }))["error"]["code"], -32602);
+    assert_eq!(rpc(&mut s, 7, "resources/read", json!({ "uri": "vellum://doc/1/page/9/image" }))["error"]["code"], -32602);
 }
 
 /// A server in compact mode with `dir` as its root.
@@ -3294,7 +3294,7 @@ fn styled_cyrillic_fallback_is_batched_through_tools_and_reopen() {
     assert!(page_text(&mut a, reopened)[0].contains("шалом"));
 }
 
-/// #2593: a paragraph whose own font cannot show a character is written from PdfCraft's fallback
+/// #2593: a paragraph whose own font cannot show a character is written from Vellum's fallback
 /// faces. The Cyrillic the craft-fonts faces lack (Uzbek қ ғ ҳ, Kazakh ә ө ү ұ һ) comes from the
 /// bundled Inter face, so the edit is not refused even without `CRAFT_FONTS_DIR`, and the words
 /// survive a save and a reopen. (`crates/edit/src/tests.rs::uzbek_and_kazakh_cyrillic_use_the_bundled_latin_face`
@@ -5365,7 +5365,7 @@ fn links_through_tools() {
 }
 
 /// #4168: a Launch action whose file is a PDF (here with Windows `\` separators, relative to the
-/// source as a remote link is) opens that PDF in PdfCraft through link_open, within the root; one
+/// source as a remote link is) opens that PDF in Vellum through link_open, within the root; one
 /// naming a program is listed but never followed.
 #[test]
 fn a_launch_link_to_a_pdf_opens_it_like_a_remote_link() {
@@ -5794,7 +5794,7 @@ fn comment_checkmarks_locks_hiding_and_summaries_through_tools() {
 /// value, a button caption, a text box and Fill & Sign text are kept as typed (as Acrobat keeps
 /// them) and the result's `warnings` names the character; a form also asks other viewers to
 /// redraw it. Where the `?` would be permanent the tool refuses: a typed signature, a redaction's
-/// overlay text, a new document from text, and flattening what PdfCraft drew with `?`. A comment
+/// overlay text, a new document from text, and flattening what Vellum drew with `?`. A comment
 /// summary that quotes such text writes it as [U+XXXX].
 #[test]
 fn text_the_standard_fonts_cannot_draw_is_never_silent_through_tools() {
@@ -8016,14 +8016,14 @@ fn conventions_resources() {
         let r = rpc(s, 1, "resources/read", json!({"uri":uri}));
         serde_json::from_str::<Value>(r["result"]["contents"][0]["text"].as_str().expect("JSON resource")).unwrap()
     };
-    assert_eq!(read(&mut s, "pdfcraft://document"), json!({"documents":[]}));
+    assert_eq!(read(&mut s, "vellum://document"), json!({"documents":[]}));
     rpc(&mut s, 2, "tools/call", json!({"name":"doc_open","arguments":{"path":"a.pdf"}}));
     let doc = rpc(&mut s, 3, "tools/call", json!({"name":"doc_inspect","arguments":{}}));
-    assert_eq!(read(&mut s, "pdfcraft://document"), doc["result"]["structuredContent"]);
+    assert_eq!(read(&mut s, "vellum://document"), doc["result"]["structuredContent"]);
     let commands = rpc(&mut s, 4, "tools/call", json!({"name":"command_list","arguments":{}}));
-    assert_eq!(read(&mut s, "pdfcraft://commands"), commands["result"]["structuredContent"]);
+    assert_eq!(read(&mut s, "vellum://commands"), commands["result"]["structuredContent"]);
     // Responses keep the shape every supported protocol revision expects: no cache hints.
-    for (method, params) in [("tools/list", json!({})), ("resources/list", json!({})), ("resources/read", json!({"uri":"pdfcraft://document"}))] {
+    for (method, params) in [("tools/list", json!({})), ("resources/list", json!({})), ("resources/read", json!({"uri":"vellum://document"}))] {
         assert!(rpc(&mut s, 5, method, params)["result"].get("resultType").is_none());
     }
     assert_eq!(rpc(&mut s, 7, "initialize", json!({"protocolVersion":"2026-07-28"}))["result"]["protocolVersion"], "2025-06-18");

@@ -140,7 +140,7 @@ fn the_desktop_frame_is_turned_off_only_when_the_app_draws_one() {
 #[test]
 fn a_software_renderer_is_shown_to_the_user() {
     use eframe::wgpu::DeviceType;
-    // Issue #519: WARP or llvmpipe is announced in the app, not just in pdfcraft.log.
+    // Issue #519: WARP or llvmpipe is announced in the app, not just in vellum.log.
     let mut app = super::PdfCraftApp::new();
     super::notify_software_renderer(&mut app, DeviceType::Cpu);
     let notice = app.toast.as_ref().map(|(m, _)| m.as_str()).unwrap_or_default();
@@ -309,8 +309,8 @@ fn vendor_provenance_egui_wgpu_surface_fit_identity() {
 fn a_gpu_error_while_a_window_is_set_up_is_returned_not_a_panic() {
     // Issue #519: on a 2015 Intel GPU, wgpu's GL backend couldn't configure the window's
     // surface (`GpuWaitTimeout`), and wgpu's default error handler panicked before the app was
-    // created, so PdfCraft never got to retry with OpenGL. vendor/egui-wgpu configures a new
-    // window's surface inside `catch_errors`. A real device on PdfCraft's own GPU settings,
+    // created, so Vellum never got to retry with OpenGL. vendor/egui-wgpu configures a new
+    // window's surface inside `catch_errors`. A real device on Vellum's own GPU settings,
     // and an error wgpu raises before anything reaches the driver: a texture one pixel wider
     // than the device allows.
     use eframe::wgpu;
@@ -422,7 +422,7 @@ fn winit_carries_the_windows_11_monitor_scale_fix() {
     // The audited W1 hunk itself, not merely the file's presence: Windows 11 applies the
     // rect Windows suggests, while Windows 10 keeps the old adjustment.
     for marker in [
-        "PdfCraft patch: from Windows 11 (build 22000) on, apply the rect Windows suggests",
+        "Vellum patch: from Windows 11 (build 22000) on, apply the rect Windows suggests",
         "if !WIN10_BUILD_VERSION.is_some_and(|build| build < 22000) {",
         "new_outer_rect = suggested_rect;",
     ] {
@@ -658,7 +658,7 @@ fn the_control_file_replaces_the_one_a_previous_run_left() {
 /// so it has to be the class the window carries: the app id, on Wayland and X11 alike.
 #[test]
 fn the_desktop_entry_names_the_window_class() {
-    let entry = include_str!("../../../packaging/linux/ai.storyteller.pdfcraft.desktop");
+    let entry = include_str!("../../../packaging/linux/io.github.kelongyan.vellum.desktop");
     let class = entry.lines().find_map(|line| line.strip_prefix("StartupWMClass="));
     assert_eq!(class, Some(super::APP_ID));
 }

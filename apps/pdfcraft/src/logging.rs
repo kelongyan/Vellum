@@ -3,11 +3,11 @@
 //! Without a logger every `log::warn!`/`log::error!` in the workspace (a failed autosave, a page
 //! that would not render, a render worker that could not start, the panic hook's report) vanished.
 //! A launch from a desktop menu has no terminal, so the file is what a bug report can attach:
-//! `<data dir>/logs/pdfcraft.log` (the PdfCraft eframe storage directory, or portable data). Each
-//! start moves the previous log to `pdfcraft.1.log` (and that one to `.2`), so the log of a run
+//! `<data dir>/logs/vellum.log` (the Vellum eframe storage directory, or portable data). Each
+//! start moves the previous log to `vellum.1.log` (and that one to `.2`), so the log of a run
 //! that crashed survives the next launch.
 //!
-//! Levels: `info` for PdfCraft's own crates, `warn` for everything else (wgpu and naga are
+//! Levels: `info` for Vellum's own crates, `warn` for everything else (wgpu and naga are
 //! chatty). `RUST_LOG` replaces that with env_logger-style directives: `debug`,
 //! `warn,pdfcraft_render=trace`, `wgpu_core=info`. A directive ending in `*` matches every target
 //! that starts with it (`pdfcraft*=debug`).
@@ -26,8 +26,8 @@ use std::time::SystemTime;
 use log::LevelFilter;
 
 /// The current log file's name inside the log directory.
-pub const LOG_FILE: &str = "pdfcraft.log";
-/// How many previous logs are kept (`pdfcraft.1.log` … `pdfcraft.<KEEP>.log`).
+pub const LOG_FILE: &str = "vellum.log";
+/// How many previous logs are kept (`vellum.1.log` … `vellum.<KEEP>.log`).
 pub const KEEP: usize = 2;
 /// The log file stops growing past this size (a runaway warning can't fill the disk).
 pub const MAX_FILE_BYTES: u64 = 16 * 1024 * 1024;
@@ -124,7 +124,7 @@ fn civil_from_days(days: u64) -> (i64, u32, u32) {
 }
 
 fn numbered(dir: &Path, n: usize) -> PathBuf {
-    if n == 0 { dir.join(LOG_FILE) } else { dir.join(format!("pdfcraft.{n}.log")) }
+    if n == 0 { dir.join(LOG_FILE) } else { dir.join(format!("vellum.{n}.log")) }
 }
 
 /// Shift the previous logs up one (`.log` → `.1.log` → … → `.<KEEP>.log`, the oldest dropped)
@@ -369,9 +369,9 @@ mod tests {
             std::fs::write(&path, format!("run {run}")).expect("write");
         }
         assert_eq!(read(&dir.join(LOG_FILE)), "run 4");
-        assert_eq!(read(&dir.join("pdfcraft.1.log")), "run 3");
-        assert_eq!(read(&dir.join("pdfcraft.2.log")), "run 2");
-        assert!(!dir.join("pdfcraft.3.log").exists(), "only {KEEP} old logs are kept");
+        assert_eq!(read(&dir.join("vellum.1.log")), "run 3");
+        assert_eq!(read(&dir.join("vellum.2.log")), "run 2");
+        assert!(!dir.join("vellum.3.log").exists(), "only {KEEP} old logs are kept");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

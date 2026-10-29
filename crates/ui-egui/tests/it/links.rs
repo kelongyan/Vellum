@@ -1,4 +1,4 @@
-//! Community links: Help menu and About dialog open the ArtCraft and PdfCraft pages.
+//! Community links: the Help menu and About dialog open Vellum's project pages.
 //! CUSTOM(kelongyan): the top bar's Discord button, and its test, were removed from this fork.
 
 use egui_kittest::Harness;
@@ -29,9 +29,9 @@ fn about_dialog_shows_the_brand_and_links() {
         app.open_bytes("one.pdf", None, pdf.to_vec()).unwrap();
         app.dialog = Some(Dialog::About);
     });
-    assert!(h.query_all_by_label("ArtCraft").count() >= 2, "the mark and the wordmark (alt text)");
+    assert!(h.query_all_by_label("Vellum").count() >= 1, "the app name");
     // CUSTOM(kelongyan): the Discord link was removed; the web page link stands in for it.
-    h.get_by_label("PdfCraft web page").click();
+    h.get_by_label("Vellum web page").click();
     h.run_steps(2);
     assert_eq!(h.state().last_opened_url.as_deref(), Some(links::APP_PAGE));
 }

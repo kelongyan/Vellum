@@ -587,7 +587,7 @@ pub fn rerender(doc: &mut Document, tpl: &Template) -> Result<Report, XfaError> 
         return Err(XfaError::Malformed("the template laid out to no pages".into()));
     }
     // The fields an earlier pass generated give way to the new layout's, after it is written: it
-    // keeps a signature one of them holds. The AcroForm keeps every field PdfCraft did not generate.
+    // keeps a signature one of them holds. The AcroForm keeps every field Vellum did not generate.
     let Some(root) = doc.root() else { return Err(XfaError::NotXfa) };
     let top = |doc: &Document| -> Vec<Object> {
         acroform(doc).and_then(|(_, acro)| acro.get(b"Fields").map(|f| doc.resolve(f)).and_then(|f| f.as_array().cloned())).unwrap_or_default()

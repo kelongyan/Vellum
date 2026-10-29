@@ -9,7 +9,7 @@ use super::{AnnotError, Dict, Document, ObjRef, Object, Stream, appearance};
 ///
 /// A comment whose text the standard fonts can't draw, with an appearance another program drew
 /// (with a font that has those characters), keeps that appearance: redrawing it would put `?` in
-/// their place, so the edit is refused (`AnnotError::Undrawable`). One PdfCraft drew with `?`
+/// their place, so the edit is refused (`AnnotError::Undrawable`). One Vellum drew with `?`
 /// (marked `pdfcraft_fonts::UNDRAWN_MARK`) is redrawn.
 pub fn set_appearance(doc: &mut Document, r: ObjRef) -> Result<(), AnnotError> {
     refuse_foreign_text(doc, &annot_dict(doc, r))?;

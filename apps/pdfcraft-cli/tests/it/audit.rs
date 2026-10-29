@@ -3,7 +3,7 @@
 
 use std::process::Command;
 
-const BIN: &str = env!("CARGO_BIN_EXE_pdfcraft-cli");
+const BIN: &str = env!("CARGO_BIN_EXE_vellum-cli");
 
 /// Two US Letter pages with "TOP SECRET" under an opaque `90 688 220 32 re`; the second page is
 /// turned a quarter (`/Rotate 90`).
@@ -39,7 +39,7 @@ fn rects(report: &serde_json::Value) -> Vec<serde_json::Value> {
 
 #[test]
 fn audit_rectangles_match_the_tool_in_top_left_points() {
-    let dir = std::env::temp_dir().join(format!("pdfcraft-cli-audit-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("vellum-cli-audit-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("faux.pdf"), fixture()).unwrap();
 

@@ -1,4 +1,4 @@
-//! Appearance streams (§12.5.5) for the comment types PdfCraft creates, execution plan M5.2.
+//! Appearance streams (§12.5.5) for the comment types Vellum creates, execution plan M5.2.
 //!
 //! [`build`] draws a normal appearance (`/AP /N`) from the annotation dictionary alone, so the
 //! same code serves new comments and restyled ones. Drawings are in page space with
@@ -6,7 +6,7 @@
 //! It returns `None` for anything it cannot draw faithfully (cloudy borders, unknown line
 //! endings, indirect geometry), so callers never replace an appearance with a worse one.
 //!
-//! The note icons are PdfCraft's own drawings (AGENTS.md §1). Text boxes use the standard
+//! The note icons are Vellum's own drawings (AGENTS.md §1). Text boxes use the standard
 //! Helvetica font with WinAnsi encoding; line breaking uses [`text_width`], an approximation of
 //! Helvetica's proportions by character class (no font program or metrics file is bundled).
 
@@ -459,7 +459,7 @@ fn draw_body(context: &AppearanceContext<'_>, drawing: &mut AppearanceDrawing) -
 }
 
 fn finish_appearance(context: &AppearanceContext<'_>, mut drawing: AppearanceDrawing) -> Option<Stream> {
-    // PdfCraft measurement captions are kept separate from the comment's free-form text.
+    // Vellum measurement captions are kept separate from the comment's free-form text.
     // A restyle regenerates the path and its value together.
     let mut out = drawing.content.into_bytes();
     out.extend(drawing.tail);
@@ -805,7 +805,7 @@ fn draw_stamp(context: &AppearanceContext<'_>, mut drawing: AppearanceDrawing) -
         }
         return Some(stream);
     }
-    // Only PdfCraft's own Fill & Sign marks are drawn here.
+    // Only Vellum's own Fill & Sign marks are drawn here.
     let name = d.name(b"Name")?;
     let col = stroke.unwrap_or([0.0; 3]);
     // A mark or stamp placed on a turned page is drawn upright in its displayed box, then
@@ -873,7 +873,7 @@ fn draw_stamp(context: &AppearanceContext<'_>, mut drawing: AppearanceDrawing) -
             n(y0 + h / 2.0)
         )),
         other => {
-            // Only stamps PdfCraft made: others keep their own artwork.
+            // Only stamps Vellum made: others keep their own artwork.
             if !matches!(d.get(b"PCStamp"), Some(Object::Bool(true))) {
                 return None;
             }

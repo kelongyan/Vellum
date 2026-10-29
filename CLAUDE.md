@@ -1,12 +1,12 @@
-# PdfCraft — instructions for agents
+# Vellum — instructions for agents
 
-PdfCraft is a clean-room, open-source, Rust-native PDF application targeting Adobe Acrobat Pro parity. It runs natively on macOS, Windows, Linux and FreeBSD, and on the web via WASM. It is the sibling of `../photocraft` (a Photoshop-class editor) and follows the same conventions.
+Vellum is a clean-room, open-source, Rust-native PDF application targeting Adobe Acrobat Pro parity. It runs natively on macOS, Windows, Linux and FreeBSD, and on the web via WASM. It is the sibling of `../photocraft` (a Photoshop-class editor) and follows the same conventions.
 
 <!-- CUSTOM(kelongyan): fork overlay. One contiguous block; the upstream text below is unchanged. -->
 
 ## This fork
 
-This is **kelongyan's fork** of `storytold/pdfcraft` (origin `kelongyan/pdfcraft`, pushable; upstream `storytold/pdfcraft`, PR-only): local customization on top of a read-only upstream mirror. The customization today is the removal of Discord and of the Home screen's ArtCraft community card, plus a fork-authored Home: a GoodNotes-style document library with first-page thumbnails (HarmonyOS Sans SC as the local runtime default UI font, read from Downloads and never shipped; opening a document collapses All tools and keeps the outline in view; `crates/ui-egui/src/custom/`; 105 `CUSTOM(kelongyan)` marks across 45 files, plus a fork motion ladder in `custom/tempo.rs` that now owns every rung: P1 slides the tab underline and puts egui's own fades on one clock, P2 rises dialogs, the palette and notices, P3 rises a side panel's contents when it opens). Before any work here, read `RULE.md` and the `Rule/` documents it indexes — both gitignored, local only. Authority order: `AGENTS.md` > this file > `RULE.md`/`Rule/`.
+This is **kelongyan's fork** of `storytold/pdfcraft` (origin `kelongyan/Vellum`, pushable; upstream `storytold/pdfcraft`, PR-only): local customization on top of a read-only upstream mirror. The customization today is the removal of Discord and of the Home screen's ArtCraft community card, plus a fork-authored Home: a GoodNotes-style document library with first-page thumbnails (HarmonyOS Sans SC as the local runtime default UI font, read from Downloads and never shipped; opening a document collapses All tools and keeps the outline in view; `crates/ui-egui/src/custom/`; 105 `CUSTOM(kelongyan)` marks across 45 files, plus a fork motion ladder in `custom/tempo.rs` that now owns every rung: P1 slides the tab underline and puts egui's own fades on one clock, P2 rises dialogs, the palette and notices, P3 rises a side panel's contents when it opens). Before any work here, read `RULE.md` and the `Rule/` documents it indexes — both gitignored, local only. Authority order: `AGENTS.md` > this file > `RULE.md`/`Rule/`.
 
 **No compilation, compiled tests/checks, or packaging without the owner's explicit command for the current task** (`Rule/build-and-packaging.md`). This applies to **all changes, including UI refactors, with no standing exception** (owner, 2026-10-19; the former UI preauthorization is revoked). Do not run `cargo build`/`run`/`test`/`clippy`/`check`/`bench`, any `cargo xtask` command, packaging scripts, or equivalent build-producing wrappers without that authorization, even with a different target directory. Requests to learn, edit, refactor, verify, or clean caches do not authorize a build. Read-only checks (files, `git` queries, Grep/Glob) are unrestricted; quality gates below are not permission to build. The explicit command 「编译打包」 still authorizes the documented release build, Windows MSI/portable packaging, and artifact delivery for that task only; permission to test or compile alone does not authorize packaging.
 
@@ -68,11 +68,11 @@ This is **kelongyan's fork** of `storytold/pdfcraft` (origin `kelongyan/pdfcraft
 
 ## Running and looking at the app
 - `cargo run -p pdfcraft -- <file.pdf>` opens the desktop app.
-- `cargo run -p pdfcraft-cli -- run --script steps.json --root DIR` drives the engine headlessly through the automation tools (`pdfcraft-cli tools` lists them). Use it, together with `page_render`, to check engine changes. `pdfcraft-cli mcp` is the opt-in MCP server (AGENTS.md §3).
+- `cargo run -p pdfcraft-cli -- run --script steps.json --root DIR` drives the engine headlessly through the automation tools (`vellum-cli tools` lists them). Use it, together with `page_render`, to check engine changes. `vellum-cli mcp` is the opt-in MCP server (AGENTS.md §3).
 - `cargo xtask fuzz --time 300` mutation-fuzzes open/render/edit/save in child processes. Findings land in `fuzz-out/findings/` (git-ignored; never commit corpus-derived files). Turn every real finding into a small synthetic regression test before fixing it.
 - `cargo xtask parity [--partial]` reports Acrobat-parity progress from `parity/acrobat-features.toml`. Update the entry when a feature ships.
 - `cargo xtask demo-pdf` builds `dist/demo/pdfcraft-showcase.pdf` (needs Chrome) for visual checks.
-- For UI work, **look at the result**. Either launch `pdfcraft --control FILE doc.pdf` and use `pdfcraft-cli ui --control FILE screenshot --out x.png` (plus `inspect`, `click`, `key`, `type`, `command`, `set`), or take a headless shot with `cargo run -p pdfcraft-ui-egui --example shot`. Compare against `plan/acrobat/02-ui-ux.md`. Control-channel tests use kittest (`crates/ui-egui/tests/control.rs`).
+- For UI work, **look at the result**. Either launch `vellum --control FILE doc.pdf` and use `vellum-cli ui --control FILE screenshot --out x.png` (plus `inspect`, `click`, `key`, `type`, `command`, `set`), or take a headless shot with `cargo run -p pdfcraft-ui-egui --example shot`. Compare against `plan/acrobat/02-ui-ux.md`. Control-channel tests use kittest (`crates/ui-egui/tests/control.rs`).
 - Parallel agents: use a separate `CARGO_TARGET_DIR` per agent and separate git worktrees.
 
 ## Current bootstrap debt (tracked in STATUS.md)

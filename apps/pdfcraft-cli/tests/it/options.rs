@@ -2,7 +2,7 @@
 
 use std::process::Command;
 
-const BIN: &str = env!("CARGO_BIN_EXE_pdfcraft-cli");
+const BIN: &str = env!("CARGO_BIN_EXE_vellum-cli");
 
 #[test]
 fn non_edit_commands_reject_unknown_options_before_io() {
@@ -37,7 +37,7 @@ fn non_edit_commands_reject_unknown_options_before_io() {
 /// string, `--page` included, which `text`'s own tests pin and this does not change.
 #[test]
 fn a_file_option_refuses_a_value_that_is_another_option() {
-    let dir = std::env::temp_dir().join(format!("pdfcraft-cli-values-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("vellum-cli-values-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).expect("temp dir");
     for (option, args) in [

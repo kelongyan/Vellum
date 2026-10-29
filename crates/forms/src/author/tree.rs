@@ -78,7 +78,7 @@ fn store_form_fonts(doc: &mut Document, af: &mut Dict, mut dr: Dict, fonts: Dict
 }
 
 /// Filling a field: the form's inline `/DR` fonts become objects (see
-/// [`inline_fonts_as_objects`]), so a form an earlier version of PdfCraft made works in Acrobat
+/// [`inline_fonts_as_objects`]), so a form an earlier version of Vellum made works in Acrobat
 /// once it has been filled here too (#3441). Only the font storage changes; nothing is added.
 /// Not in a form a signature covers: there the file stays as the signer saw it, apart from the
 /// value itself.

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Regenerate the PdfCraft app icons from assets/app-icon/pdfcraft-logo.png.
+"""Regenerate the Vellum app icons from assets/app-icon/vellum-logo.png.
 
-This fork's app-icon master is a raster (pdfcraft-logo.png), so every derived file is
+This fork's app-icon master is a raster (vellum-logo.png), so every derived file is
 rendered with Pillow instead of upstream's resvg pipeline. The Windows PDF file icon is
-still rendered from pdfcraft-document.svg when resvg is on PATH; otherwise the committed
-pdfcraft-document.ico is left untouched.
+still rendered from vellum-document.svg when resvg is on PATH; otherwise the committed
+vellum-document.ico is left untouched.
 
 Needs Python 3 and Pillow (`pip install pillow`). The .icns is written here, so iconutil
 (macOS only) is no longer required. The outputs are committed, so building and packaging
@@ -26,7 +26,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 DIR = ROOT / "assets" / "app-icon"
-ID = "ai.storyteller.pdfcraft"
+ID = "io.github.kelongyan.vellum"
 
 # Linux hicolor theme sizes; 256 is also the runtime window icon on Windows and Linux.
 HICOLOR = (16, 24, 32, 48, 64, 128, 256, 512)
@@ -53,7 +53,7 @@ MAC_CANVAS = 1024.0
 
 
 def main() -> int:
-    master = Image.open(DIR / "pdfcraft-logo.png").convert("RGBA")
+    master = Image.open(DIR / "vellum-logo.png").convert("RGBA")
 
     def full_bleed(size: int) -> Image.Image:
         return master.resize((size, size), Image.LANCZOS)
@@ -66,7 +66,7 @@ def main() -> int:
         return canvas
 
     # 1024 px PNG on Apple's grid (also the runtime Dock icon on macOS).
-    mac_grid(1024).save(DIR / "pdfcraft-1024.png", "PNG", optimize=True)
+    mac_grid(1024).save(DIR / "vellum-1024.png", "PNG", optimize=True)
 
     # Linux hicolor theme (full bleed).
     for size in HICOLOR:
@@ -88,17 +88,17 @@ def main() -> int:
     path.write_text(scalable, encoding="utf-8", newline="\n")
 
     # Windows .ico: the app icon remains resource 1; the document icon has resource 2.
-    write_ico(DIR / "pdfcraft.ico", [png_blob(full_bleed(size)) for size in ICO_SIZES])
+    write_ico(DIR / "vellum.ico", [png_blob(full_bleed(size)) for size in ICO_SIZES])
 
     # macOS .icns.
     entries = b"".join(t.encode("ascii") + struct.pack(">I", len(data) + 8) + data for t, data in
                        ((t, png_blob(mac_grid(size))) for t, size in ICNS))
-    (DIR / "pdfcraft.icns").write_bytes(b"icns" + struct.pack(">I", len(entries) + 8) + entries)
+    (DIR / "vellum.icns").write_bytes(b"icns" + struct.pack(">I", len(entries) + 8) + entries)
 
     if shutil.which("resvg"):
         write_document_icon()
     else:
-        print("icons: resvg not found; pdfcraft-document.ico left as it is", file=sys.stderr)
+        print("icons: resvg not found; vellum-document.ico left as it is", file=sys.stderr)
     print(f"icons written to {DIR}")
     return 0
 
@@ -122,7 +122,7 @@ def write_ico(path: Path, blobs: list[bytes]) -> None:
 
 
 def write_document_icon() -> None:
-    svg = DIR / "pdfcraft-document.svg"
+    svg = DIR / "vellum-document.svg"
     blobs: list[bytes] = []
     with tempfile.TemporaryDirectory() as tmp:
         for size in ICO_SIZES:
@@ -132,7 +132,7 @@ def write_document_icon() -> None:
                 check=True,
             )
             blobs.append(png_blob(Image.open(out).convert("RGBA")))
-    write_ico(DIR / "pdfcraft-document.ico", blobs)
+    write_ico(DIR / "vellum-document.ico", blobs)
 
 
 if __name__ == "__main__":

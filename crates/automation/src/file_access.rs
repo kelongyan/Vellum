@@ -1,6 +1,6 @@
 //! The folders automation may read and write.
 //!
-//! `pdfcraft-cli mcp --automation-read-root <dir> --automation-write-root <dir>` confines the
+//! `vellum-cli mcp --automation-read-root <dir> --automation-write-root <dir>` confines the
 //! files an agent's tools reach, with the names and wording VectorCraft uses. [`AutomationRoots`]
 //! holds the two folders. Every path a tool reads is checked with [`Access::Read`] and every path
 //! it writes with [`Access::Write`], in `Automation::resolve`, which all of them go through:
@@ -268,7 +268,7 @@ mod tests {
     fn other_shares_and_devices_are_refused_before_they_are_resolved() {
         let (base, roots) = folders("shares");
         for p in [
-            r"\\.\pipe\pdfcraft-4003.pdf",
+            r"\\.\pipe\vellum-4003.pdf",
             r"\\?\GLOBALROOT\Device\Null",
             r"\\pdfcraft-no-such-host.invalid\share\a.pdf",
             "//pdfcraft-no-such-host.invalid/share/a.pdf",

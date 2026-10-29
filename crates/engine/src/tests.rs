@@ -5041,7 +5041,7 @@ fn scripts_in_an_xfa_form_see_the_xfa_plugin_installed() {
     assert_eq!((o.error, o.result.as_deref()), (None, Some("undefined number 3.5")));
 }
 
-/// #3940: a document-level script that defines the helper and then calls a method PdfCraft lacks
+/// #3940: a document-level script that defines the helper and then calls a method Vellum lacks
 /// (an Acrobat form copying a button icon at open) left every calculated field blank. The
 /// helper stays defined, the form calculates, and the error is reported once.
 #[test]

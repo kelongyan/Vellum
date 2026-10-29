@@ -1,4 +1,4 @@
-//! `pdfcraft-cli run --root`: a script's image output stays inside the root (#137).
+//! `vellum-cli run --root`: a script's image output stays inside the root (#137).
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -7,7 +7,7 @@ const PNG: &[u8] = b"\x89PNG\r\n\x1a\n";
 
 /// `root/` next to `outside/` (holding `existing.txt`) in a fresh temporary directory.
 fn sandbox(test: &str) -> PathBuf {
-    let base = std::env::temp_dir().join(format!("pdfcraft-cli-{test}-{}", std::process::id()));
+    let base = std::env::temp_dir().join(format!("vellum-cli-{test}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&base);
     std::fs::create_dir_all(base.join("root")).unwrap();
     std::fs::create_dir_all(base.join("outside")).unwrap();
@@ -24,7 +24,7 @@ fn render_to(base: &Path, cwd: &Path, root: Option<&Path>, out: &str) -> Output 
         { "tool": "page_render", "args": { "doc": 1, "page": 1, "dpi": 10 }, "out": out },
     ]);
     std::fs::write(&script, steps.to_string()).unwrap();
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_pdfcraft-cli"));
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_vellum-cli"));
     cmd.current_dir(cwd).arg("run").arg("--script").arg(&script);
     if let Some(root) = root {
         cmd.arg("--root").arg(root);

@@ -3,7 +3,7 @@
 
 use std::process::Command;
 
-const BIN: &str = env!("CARGO_BIN_EXE_pdfcraft-cli");
+const BIN: &str = env!("CARGO_BIN_EXE_vellum-cli");
 
 /// A PDF with `n` 200×300 pt pages reading "Page 1", "Page 2", …
 fn fixture(n: usize) -> Vec<u8> {
@@ -34,7 +34,7 @@ fn fixture(n: usize) -> Vec<u8> {
 }
 
 fn tmp(name: &str) -> std::path::PathBuf {
-    let d = std::env::temp_dir().join(format!("pdfcraft-cli-text-{}", std::process::id()));
+    let d = std::env::temp_dir().join(format!("vellum-cli-text-{}", std::process::id()));
     std::fs::create_dir_all(&d).unwrap();
     d.join(name)
 }
@@ -183,7 +183,7 @@ mod page_argument_tests {
                 let out = Command::new(BIN).arg("text").arg(input).args(args).output().unwrap();
                 assert_eq!(out.status.code(), Some(1), "{args:?}: {out:?}");
                 assert!(out.stdout.is_empty(), "{args:?}: no text may be printed");
-                assert_eq!(String::from_utf8(out.stderr).unwrap().trim(), "pdfcraft-cli: bad --page: expected a positive page number");
+                assert_eq!(String::from_utf8(out.stderr).unwrap().trim(), "vellum-cli: bad --page: expected a positive page number");
                 assert_eq!(std::fs::read(&path).unwrap(), bytes);
                 assert!(!missing.exists());
             }

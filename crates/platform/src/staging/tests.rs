@@ -20,7 +20,7 @@ fn each_form_keeps_its_exact_name() {
     let (tools, _) = create_staging(&dir, "out.pdf", StagingName::SuffixThenTag, [0xab]).unwrap();
     assert_eq!(file_name(&tools), ".out.pdf.00000000000000ab.pdfcraft-tmp");
     let (desktop, _) = create_staging(&dir, "out.pdf", StagingName::TagThenSuffix, [0xab]).unwrap();
-    assert_eq!(file_name(&desktop), ".out.pdf.pdfcraft-00000000000000ab.tmp");
+    assert_eq!(file_name(&desktop), ".out.pdf.vellum-00000000000000ab.tmp");
     assert_eq!(std::fs::read(&tools).unwrap(), b"", "a new, empty file");
     let _ = std::fs::remove_dir_all(&dir);
 }
@@ -127,7 +127,7 @@ fn atomic_saves_keep_finder_tags_and_binary_extended_attributes() {
     let dir = test_dir("xattrs");
     let target = dir.join("out.pdf");
     let attributes: &[(&str, &[u8])] = &[
-        ("com.apple.metadata:_kMDItemUserTags", b"<plist version=\"1.0\"><array><string>PdfCraft\n6</string></array></plist>"),
+        ("com.apple.metadata:_kMDItemUserTags", b"<plist version=\"1.0\"><array><string>Vellum\n6</string></array></plist>"),
         ("com.pdfcraft.test.binary", b"\0\xff\x80original\0"),
         ("com.pdfcraft.test.empty", b""),
     ];

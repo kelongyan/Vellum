@@ -3,7 +3,7 @@
 //! A JPEG with three or four components can store its samples as they are or converted to YCbCr
 //! (YCCK). An Adobe APP14 marker in the JPEG says which; without one, the filter's
 //! `/ColorTransform` does (ISO 32000-2 §7.4.8, default 1 for three components). Each image here
-//! is drawn by PdfCraft's own renderer before and after Optimize, and the two must show the same
+//! is drawn by Vellum's own renderer before and after Optimize, and the two must show the same
 //! colours, up to what a JPEG re-encode loses.
 
 use std::sync::Arc;
@@ -213,7 +213,7 @@ fn stream(doc: &Document, r: ObjRef) -> Stream {
     }
 }
 
-/// The page as PdfCraft's renderer draws it, `scale` device pixels per point: RGB rows.
+/// The page as Vellum's renderer draws it, `scale` device pixels per point: RGB rows.
 fn render(doc: &Document, scale: f32) -> (u32, u32, Vec<u8>) {
     let bytes = write_full(doc, &SaveOptions::default()).unwrap();
     let mut r = pdfcraft_render::PageRenderer::new(Arc::new(bytes), pdfcraft_render::RenderConfig::default());
@@ -274,7 +274,7 @@ fn optimize_keeps_the_colours_of_an_rgb_jpeg_whatever_its_colour_transform() {
         ("Adobe YCbCr marker, /ColorTransform 1", Some(1), false, Parms::Dict(1), Reencoded),
         ("Adobe untransformed marker", Some(0), false, Parms::None, Reencoded),
         ("Adobe untransformed marker, /ColorTransform 0", Some(0), false, Parms::Dict(0), Reencoded),
-        // The marker overrides /ColorTransform in the standard, but readers differ (PdfCraft's
+        // The marker overrides /ColorTransform in the standard, but readers differ (Vellum's
         // renderer lets /ColorTransform 0 win): the image is left as it is.
         ("Adobe YCbCr marker, /ColorTransform 0", Some(1), false, Parms::Dict(0), Untouched),
         ("Adobe untransformed marker, /ColorTransform 1", Some(0), false, Parms::Dict(1), Untouched),

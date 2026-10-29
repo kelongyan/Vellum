@@ -142,7 +142,7 @@ fn every_tool_creates_a_drawable_comment() {
 }
 
 /// #260 (page 7): Acrobat draws an Ink annotation as a smooth curve through its `/InkList`
-/// points, where PdfCraft drew straight segments between them. Three or more points now make a
+/// points, where Vellum drew straight segments between them. Three or more points now make a
 /// Catmull-Rom spline through every point (as cubic Béziers); two points stay a line, one a dot.
 #[test]
 fn ink_strokes_are_smooth_curves_through_their_points() {
@@ -1134,7 +1134,7 @@ fn a_stamp_without_an_appearance_draws_the_stamp_it_names() {
         let content = drawn(&stamp_dict(extra));
         assert!(!content.contains("Tj") && content.contains(" re\n") && content.matches(" l\n").count() == 2, "{extra}: {content}");
     }
-    // `/C` colours the stamp, as it does PdfCraft's own.
+    // `/C` colours the stamp, as it does Vellum's own.
     assert!(drawn(&stamp_dict("/Name /Final /C [1 0 1]")).contains("1 0 1 RG"));
     // The placeholder stays grey whatever the `/C`: it is not the stamp, so it takes none of its colour.
     let placeholder = drawn(&stamp_dict("/Name /MyCustomStamp /C [1 0 0]"));
@@ -1143,7 +1143,7 @@ fn a_stamp_without_an_appearance_draws_the_stamp_it_names() {
     // (restyling, flattening) still find nothing they may write.
     assert!(appearance::display_stamp(&stamp_dict("/Name /Draft /AP << /N 9 0 R >>")).is_none());
     assert!(appearance::build(&stamp_dict("/Name /Draft")).is_none());
-    assert!(appearance::display_stamp(&stamp_dict("/Name /Draft /PCStamp true")).is_none(), "PdfCraft's own stamps are drawn by `build`");
+    assert!(appearance::display_stamp(&stamp_dict("/Name /Draft /PCStamp true")).is_none(), "Vellum's own stamps are drawn by `build`");
     assert!(appearance::display_stamp(&stamp_dict("/Name /Draft /Rect [5 5 5 50]")).is_none(), "no width");
 }
 
@@ -1791,7 +1791,7 @@ fn note_drawing(name: Option<&str>, color: [f64; 3]) -> Vec<u8> {
 }
 
 /// ISO 32000-2 §12.5.6.4, Table 175: a viewer shall provide icons for the seven standard names,
-/// and may support more. Each of the fourteen names PdfCraft offers draws a shape of its own, so
+/// and may support more. Each of the fourteen names Vellum offers draws a shape of its own, so
 /// a note shows the icon it names; a name it doesn't know, and a note without one, draw `Note`
 /// (the table's default).
 #[test]
@@ -2114,7 +2114,7 @@ fn a_caption_from_rich_text_and_one_the_font_cant_draw() {
     assert!(s.windows(17).any(|w| w == b"(Dim & 50 mm <x>)"), "{}", String::from_utf8_lossy(&s));
     let cjk = table_178_line([0.0, 0.0, 100.0, 0.0], &[("Cap", Object::Bool(true)), ("Contents", Object::String(PdfString::text("長さ")))]);
     assert_eq!(crate::appearance::undrawable_text(&cjk), Some(("the line's caption", '長')));
-    // A PdfCraft measurement's label is its caption: the comment text isn't drawn a second time.
+    // A Vellum measurement's label is its caption: the comment text isn't drawn a second time.
     let mut measured = cjk.clone();
     measured.set(b"PCMeasureValue".to_vec(), Object::String(PdfString::text("5 mm")));
     assert_eq!(crate::appearance::undrawable_text(&measured), None);

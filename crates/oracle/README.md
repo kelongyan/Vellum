@@ -1,6 +1,6 @@
 # pdfcraft-oracle
 
-The external programs PdfCraft checks its own output against, and one rule: **a missing oracle is
+The external programs Vellum checks its own output against, and one rule: **a missing oracle is
 either a declared skip or a failure, never a silent pass.**
 
 - **Layer:** test support (`Class::Testkit` in `xtask/src/layers.rs`). A dev-dependency only, never
@@ -75,7 +75,7 @@ painted the wrong colour, has no near match and is counted. The test runs in bot
 reports the worse result, so neither argument order flatters the blurrier renderer.
 
 `decode_pgm` reads what `pdftoppm -gray` writes; `decode_pam_gray` reads what
-`pdfcraft-cli render --out x.pam` writes, compositing premultiplied alpha over white first so a
+`vellum-cli render --out x.pam` writes, compositing premultiplied alpha over white first so a
 transparent margin is not scored as black.
 
 `cargo xtask render-oracle` drives it over the corpus. It reports; it does not gate.
