@@ -574,7 +574,7 @@ pub fn right_rail(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
             // Page navigation cluster at the bottom, a panel of its own so that in a short
             // window the buttons above scroll instead of running into it (#3282).
             ui.with_layout(Layout::bottom_up(Align::Center), |ui| {
-                ui.spacing_mut().item_spacing.y = 4.0;
+                ui.spacing_mut().item_spacing.y = 2.0;
                 let tip = crate::commands::key_tip(ui.ctx(), tl!("Zoom out ({key})"), crate::commands::ZOOM_OUT);
                 if icons::button(ui, "zoom-out", 32.0, false, &tip).clicked() {
                     view.zoom_step(false);
@@ -643,11 +643,10 @@ pub fn right_rail(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                         view.set_zoom(zoom);
                     }
                 }
-                // CUSTOM(kelongyan): three groups - view, navigation, page - separated by a rule,
-                // instead of one eleven-button stack with two points between everything.
-                ui.add_space(4.0);
-                ui.separator();
-                ui.add_space(2.0);
+                // CUSTOM(kelongyan): three groups - view, navigation, page - told apart by a gap,
+                // not a rule: in a short window two rules pushed the buttons above into the page
+                // box (ui::short_window_rail_buttons_scroll_clear_of_page_navigation).
+                ui.add_space(8.0);
                 if icons::button(ui, "chevron-down", 32.0, false, tl!("Next page")).clicked() {
                     view.step_page(true);
                 }
@@ -665,9 +664,7 @@ pub fn right_rail(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                     }
                 }
                 let font = theme::regular(11.0);
-                ui.add_space(2.0);
-                ui.separator();
-                ui.add_space(2.0);
+                ui.add_space(8.0);
                 let mut position = page_position(view.current, page_count, labels.get(view.current).map_or("", String::as_str));
                 // CUSTOM(kelongyan): a bare "2" under the page box read as a second page number.
                 // The count is shown as "/ 2" so the two lines say "current page / total".

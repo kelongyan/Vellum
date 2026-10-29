@@ -60,7 +60,9 @@ const GAP: f32 = 6.0;
 const LABEL_ICON: f32 = 22.0;
 /// The button beside a number field that opens its list of common values: just an arrow, so the
 /// field keeps the room its value needs.
-const PRESET_LIST: f32 = 22.0;
+// CUSTOM(kelongyan): 28, the smallest box `icons::button` now draws. At 22 the reserved width
+// no longer matched the arrow's, and two of these rows reached past the panel.
+const PRESET_LIST: f32 = 28.0;
 /// What can be typed: horizontal scale in percent, character spacing in points.
 const SCALE_RANGE: std::ops::RangeInclusive<f64> = 10.0..=400.0;
 const CHAR_SPACING_RANGE: std::ops::RangeInclusive<f64> = -5.0..=50.0;
@@ -197,7 +199,9 @@ pub(crate) fn panel(ui: &mut egui::Ui, t: &Tokens, look: &mut AddedText, extras:
 
     // Line and paragraph spacing; horizontal scale and character spacing: two columns, each an
     // icon and its control, `half` wide.
-    let half = ((ui.available_width() - 2.0 * LABEL_ICON - 8.0 - 3.0 * GAP) / 2.0).max(40.0);
+    // CUSTOM(kelongyan): 4 gaps, not 3: with 28-point arrows the second column reached a few
+    // points past the panel's own list, and this row has no slack to borrow.
+    let half = ((ui.available_width() - 2.0 * LABEL_ICON - 8.0 - 4.0 * GAP) / 2.0).max(40.0);
     let editing = extras.is_some();
     let mut fallback = Extras::default();
     let e = extras.as_deref_mut().unwrap_or(&mut fallback);
