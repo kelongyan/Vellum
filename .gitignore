@@ -13,6 +13,10 @@ plan/
 /RULE.md
 /Rule/
 /.workbuddy/
+# CUSTOM(kelongyan): the fork's local skills (upstream-sync), same as the rules above: this
+# checkout's tooling, not project code. `.workbuddy/skills/upstream-sync` is a junction to it so
+# WorkBuddy still discovers the skill. See Rule/collaboration.md.
+/skills/
 # CUSTOM(kelongyan): scratch output for this checkout: screenshots, design drafts, fetched
 # font copies and tool logs. Not project assets, so `cargo xtask assets` must not list them
 # (AGENTS.md §1.3 checks every file git would track). See Rule/collaboration.md.
