@@ -119,8 +119,8 @@ fn migrate_legacy_folders() {
     // Recovery lives in the settings folder except on Windows, where it is under %LOCALAPPDATA%.
     if cfg!(windows) {
         let local = std::env::var_os("LOCALAPPDATA").filter(|v| !v.is_empty()).map(std::path::PathBuf::from);
-        moves.push((local.as_ref().map(|d| d.join("PdfCraft")), local.map(|d| d.join("Vellum"))));
-        moves.push((local.as_ref().map(|d| d.join("PrintCraft")), local.map(|d| d.join("Vellum"))));
+        moves.push((local.as_ref().map(|d| d.join("PdfCraft")), local.as_ref().map(|d| d.join("Vellum"))));
+        moves.push((local.as_ref().map(|d| d.join("PrintCraft")), local.as_ref().map(|d| d.join("Vellum"))));
     }
     for (old, new) in moves {
         let (Some(old), Some(new)) = (old, new) else { continue };
